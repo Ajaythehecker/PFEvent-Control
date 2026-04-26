@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VAControl — Flight Strips for VA Events</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="home-page">
+
+  <div id="home-screen">
+    <nav class="nav">
+      <div class="nav-logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">VAControl</span>
+      </div>
+      <div class="nav-right">
+        <span class="nav-tag">Project Flight Events</span>
+      </div>
+    </nav>
+
+    <main class="hero">
+      <div class="hero-content">
+        <div class="hero-label">Real-time coordination</div>
+        <h1 class="hero-title">Flight strips.<br>For VA events.</h1>
+        <p class="hero-sub">Create a room, share the code with your team,<br>and manage every strip live — together.</p>
+
+        <div class="home-cards">
+          <div class="home-card" id="create-card">
+            <div class="card-icon">+</div>
+            <div class="card-title">Create event</div>
+            <div class="card-desc">Start a new strip board for your event</div>
+          </div>
+          <div class="home-card" id="join-card">
+            <div class="card-icon">→</div>
+            <div class="card-title">Join event</div>
+            <div class="card-desc">Enter a room code to join an existing event</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="strip-preview" aria-hidden="true">
+        <div class="preview-strip ps-active">
+          <div class="ps-top"><span class="ps-cs">KAV001</span><span class="ps-ac">B77W</span><span class="ps-va va-kav">KAv</span></div>
+          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL350</span></div>
+        </div>
+        <div class="preview-strip ps-enroute">
+          <div class="ps-top"><span class="ps-cs">GUL201</span><span class="ps-ac">B789</span><span class="ps-va va-gulf">Gulf VA</span></div>
+          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL370</span></div>
+        </div>
+        <div class="preview-strip ps-reg">
+          <div class="ps-top"><span class="ps-cs">ARA501</span><span class="ps-ac">A320</span><span class="ps-va va-ara">ARA</span></div>
+          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL330</span></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- CREATE MODAL -->
+    <div class="modal-backdrop" id="create-modal">
+      <div class="modal">
+        <button class="modal-close" data-close="create-modal">✕</button>
+        <h2 class="modal-title">Create event room</h2>
+        <div class="field">
+          <label>Event name</label>
+          <input id="c-name" type="text" placeholder="Gulf SkyWay Cup — Round 3" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Airport (ICAO)</label>
+          <input id="c-airport" type="text" placeholder="OBBI" maxlength="4" class="mono" style="text-transform:uppercase">
+        </div>
+        <div class="field">
+          <label>Your username</label>
+          <input id="c-user" type="text" placeholder="ATC_Ajay" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="create-btn">Create room</button>
+        <p class="modal-hint" id="create-error"></p>
+      </div>
+    </div>
+
+    <!-- JOIN MODAL -->
+    <div class="modal-backdrop" id="join-modal">
+      <div class="modal">
+        <button class="modal-close" data-close="join-modal">✕</button>
+        <h2 class="modal-title">Join event room</h2>
+        <div class="field">
+          <label>Room code</label>
+          <input id="j-code" type="text" placeholder="A1B2C3" maxlength="6" class="mono big-input" style="text-transform:uppercase" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Your username</label>
+          <input id="j-user" type="text" placeholder="Pilot_Name" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="join-btn">Join room</button>
+        <p class="modal-hint" id="join-error"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRIP BOARD -->
+  <div id="board-screen" style="display:none">
+    <div class="board-nav">
+      <div class="board-nav-left">
+        <button class="back-btn" id="back-btn">← Back</button>
+        <div class="board-event-info">
+          <span class="board-event-name" id="board-event-name">—</span>
+          <span class="board-room-code" id="board-room-code">—</span>
+        </div>
+      </div>
+      <div class="board-nav-right">
+        <div class="stat-pill"><span id="stat-total">0</span> total</div>
+        <div class="stat-pill live"><span class="live-dot"></span><span id="stat-conn">0</span> online</div>
+        <button class="btn-add" id="open-add-btn">+ Add strip</button>
+      </div>
+    </div>
+
+    <div class="board-columns" id="board-columns">
+      <div class="column" data-status="registered">
+        <div class="col-header">
+          <span class="col-dot dot-reg"></span>
+          <span class="col-title">Registered</span>
+          <span class="col-count" id="cnt-registered">0</span>
+        </div>
+        <div class="col-strips" id="strips-registered"></div>
+      </div>
+      <div class="column" data-status="departing">
+        <div class="col-header">
+          <span class="col-dot dot-dep"></span>
+          <span class="col-title">Departing</span>
+          <span class="col-count" id="cnt-departing">0</span>
+        </div>
+        <div class="col-strips" id="strips-departing"></div>
+      </div>
+      <div class="column" data-status="enroute">
+        <div class="col-header">
+          <span class="col-dot dot-enr"></span>
+          <span class="col-title">En Route</span>
+          <span class="col-count" id="cnt-enroute">0</span>
+        </div>
+        <div class="col-strips" id="strips-enroute"></div>
+      </div>
+      <div class="column" data-status="arrived">
+        <div class="col-header">
+          <span class="col-dot dot-arr"></span>
+          <span class="col-title">Arrived</span>
+          <span class="col-count" id="cnt-arrived">0</span>
+        </div>
+        <div class="col-strips" id="strips-arrived"></div>
+      </div>
+    </div>
+
+    <!-- ADD STRIP PANEL -->
+    <div class="side-panel" id="add-panel">
+      <div class="panel-header">
+        <span>Add flight strip</span>
+        <button class="panel-close" id="close-add-btn">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="field">
+          <label>Callsign</label>
+          <input id="a-cs" class="mono" type="text" placeholder="KAV001" maxlength="8" style="text-transform:uppercase">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Aircraft</label>
+            <input id="a-ac" class="mono" type="text" placeholder="B77W" maxlength="6" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label>VA / Airline</label>
+            <input id="a-va" type="text" placeholder="KAv" maxlength="12">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Origin</label>
+            <input id="a-orig" class="mono" type="text" placeholder="OBBI" maxlength="4" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label>Destination</label>
+            <input id="a-dest" class="mono" type="text" placeholder="OMDB" maxlength="4" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Gate</label>
+            <input id="a-gate" class="mono" type="text" placeholder="G14" maxlength="6" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label>Flight Level</label>
+            <input id="a-fl" class="mono" type="text" placeholder="FL350" maxlength="6" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="field">
+          <label>Pilot username</label>
+          <input id="a-pilot" type="text" placeholder="PilotName">
+        </div>
+        <div class="field">
+          <label>Remarks (optional)</label>
+          <input id="a-remarks" type="text" placeholder="VIP, late departure...">
+        </div>
+        <button class="btn-primary w-full" id="add-strip-btn">Add strip</button>
+      </div>
+    </div>
+
+    <!-- STRIP DETAIL PANEL -->
+    <div class="side-panel" id="detail-panel">
+      <div class="panel-header">
+        <span id="d-callsign-header">Strip detail</span>
+        <button class="panel-close" id="close-detail-btn">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="detail-top">
+          <div class="detail-cs" id="d-cs">—</div>
+          <div class="detail-sub" id="d-sub">—</div>
+        </div>
+        <div class="detail-grid" id="d-grid"></div>
+        <div class="detail-section-label">Move to status</div>
+        <div class="status-btn-list" id="status-btns"></div>
+        <div class="detail-section-label" style="margin-top:16px">Remarks</div>
+        <textarea id="d-remarks" rows="2" placeholder="Add a note..."></textarea>
+        <button class="btn-secondary w-full" id="save-remarks-btn">Save remarks</button>
+        <button class="btn-danger w-full" id="delete-strip-btn">Remove strip</button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
