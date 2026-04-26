@@ -1,6 +1,6 @@
 {
-  "name": "vacontrol",
-  "version": "1.0.0",
+  "name": "pfevent-control",
+  "version": "2.0.0",
   "description": "Real-time flight strip platform for VA events in Project Flight",
   "main": "server/index.js",
   "scripts": {
@@ -9,8 +9,10 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
     "socket.io": "^4.6.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

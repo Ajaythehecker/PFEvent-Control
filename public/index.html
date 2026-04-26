@@ -3,231 +3,336 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VAControl — Flight Strips for VA Events</title>
+  <title>PFEvent Control</title>
   <link rel="stylesheet" href="/style.css">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="home-page">
+<body>
 
-  <div id="home-screen">
-    <nav class="nav">
-      <div class="nav-logo">
-        <span class="logo-icon">◈</span>
-        <span class="logo-text">VAControl</span>
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 1: LOGIN
+═══════════════════════════════════════════════════════ -->
+<div id="screen-login" class="screen">
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
+  </nav>
+  <main class="hero">
+    <div class="hero-content">
+      <div class="hero-label">Project Flight · VA Events</div>
+      <h1 class="hero-title">Real-time ATC<br>for VA events.</h1>
+      <p class="hero-sub">Flight strips, ACARS, PDC clearances, ATIS —<br>all in one platform. Powered by Discord.</p>
+      <a href="/auth/discord" class="btn-discord">
+        <svg width="20" height="20" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+        Login with Discord
+      </a>
+      <div id="login-error" class="error-msg"></div>
+    </div>
+    <div class="hero-preview" aria-hidden="true">
+      <div class="preview-card atc-card">
+        <div class="preview-label">ATC VIEW</div>
+        <div class="preview-strip dep"><span class="ps-cs">KAV001</span><span class="ps-route">OBBI→OMDB</span><span class="ps-sq">SQ:2341</span></div>
+        <div class="preview-strip enr"><span class="ps-cs">GUL201</span><span class="ps-route">OBBI→OMDB</span><span class="ps-sq">SQ:4412</span></div>
+        <div class="preview-strip reg"><span class="ps-cs">ARA501</span><span class="ps-route">OBBI→OMDB</span><span class="ps-badge pdc-pending">PDC PENDING</span></div>
       </div>
-      <div class="nav-right">
-        <span class="nav-tag">Project Flight Events</span>
-      </div>
-    </nav>
-
-    <main class="hero">
-      <div class="hero-content">
-        <div class="hero-label">Real-time coordination</div>
-        <h1 class="hero-title">Flight strips.<br>For VA events.</h1>
-        <p class="hero-sub">Create a room, share the code with your team,<br>and manage every strip live — together.</p>
-
-        <div class="home-cards">
-          <div class="home-card" id="create-card">
-            <div class="card-icon">+</div>
-            <div class="card-title">Create event</div>
-            <div class="card-desc">Start a new strip board for your event</div>
-          </div>
-          <div class="home-card" id="join-card">
-            <div class="card-icon">→</div>
-            <div class="card-title">Join event</div>
-            <div class="card-desc">Enter a room code to join an existing event</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="strip-preview" aria-hidden="true">
-        <div class="preview-strip ps-active">
-          <div class="ps-top"><span class="ps-cs">KAV001</span><span class="ps-ac">B77W</span><span class="ps-va va-kav">KAv</span></div>
-          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL350</span></div>
-        </div>
-        <div class="preview-strip ps-enroute">
-          <div class="ps-top"><span class="ps-cs">GUL201</span><span class="ps-ac">B789</span><span class="ps-va va-gulf">Gulf VA</span></div>
-          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL370</span></div>
-        </div>
-        <div class="preview-strip ps-reg">
-          <div class="ps-top"><span class="ps-cs">ARA501</span><span class="ps-ac">A320</span><span class="ps-va va-ara">ARA</span></div>
-          <div class="ps-bot"><span>OBBI</span><span class="ps-arr">→</span><span>OMDB</span><span class="ps-fl">FL330</span></div>
-        </div>
-      </div>
-    </main>
-
-    <!-- CREATE MODAL -->
-    <div class="modal-backdrop" id="create-modal">
-      <div class="modal">
-        <button class="modal-close" data-close="create-modal">✕</button>
-        <h2 class="modal-title">Create event room</h2>
-        <div class="field">
-          <label>Event name</label>
-          <input id="c-name" type="text" placeholder="Gulf SkyWay Cup — Round 3" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Airport (ICAO)</label>
-          <input id="c-airport" type="text" placeholder="OBBI" maxlength="4" class="mono" style="text-transform:uppercase">
-        </div>
-        <div class="field">
-          <label>Your username</label>
-          <input id="c-user" type="text" placeholder="ATC_Ajay" autocomplete="off">
-        </div>
-        <button class="btn-primary" id="create-btn">Create room</button>
-        <p class="modal-hint" id="create-error"></p>
+      <div class="preview-card pilot-card">
+        <div class="preview-label">PILOT ACARS</div>
+        <div class="acars-row"><span class="acars-k">CALLSIGN</span><span class="acars-v">KAV001</span></div>
+        <div class="acars-row"><span class="acars-k">SQUAWK</span><span class="acars-v sq">2341</span></div>
+        <div class="acars-row"><span class="acars-k">SID</span><span class="acars-v">DAVMO1A</span></div>
+        <div class="acars-row"><span class="acars-k">FL</span><span class="acars-v">FL350</span></div>
+        <div class="acars-status">✅ CLEARANCE RECEIVED</div>
       </div>
     </div>
+  </main>
+</div>
 
-    <!-- JOIN MODAL -->
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 2: ROLE PICKER
+═══════════════════════════════════════════════════════ -->
+<div id="screen-role" class="screen" style="display:none">
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
+    <div class="nav-user" id="nav-user-role"></div>
+  </nav>
+  <main class="role-picker">
+    <h2 class="role-title">Who are you today?</h2>
+    <p class="role-sub">Choose your role for this session</p>
+    <div class="role-cards">
+      <div class="role-card" id="role-atc" onclick="selectRole('atc')">
+        <div class="role-icon">🗼</div>
+        <div class="role-name">Air Traffic Controller</div>
+        <div class="role-desc">Manage flight strips, issue PDC clearances, generate ATIS, assign squawk codes, control strip status</div>
+        <div class="role-features">
+          <span>Strip board</span><span>ATIS generator</span><span>PDC issuance</span><span>Squawk assignment</span>
+        </div>
+      </div>
+      <div class="role-card" id="role-pilot" onclick="selectRole('pilot')">
+        <div class="role-icon">✈️</div>
+        <div class="role-name">Pilot</div>
+        <div class="role-desc">File IFR/VFR flight plans, request PDC via ACARS, receive clearances, rate your controller</div>
+        <div class="role-features">
+          <span>ACARS terminal</span><span>Flight planning</span><span>PDC request</span><span>Rate ATC</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 3: HOME (after role selected)
+═══════════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen" style="display:none">
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
+    <div class="nav-right">
+      <div class="nav-user" id="nav-user-home"></div>
+      <div class="nav-role-badge" id="nav-role-badge"></div>
+      <button class="btn-ghost" onclick="switchRole()">Switch role</button>
+      <a href="/auth/logout" class="btn-ghost">Logout</a>
+    </div>
+  </nav>
+  <main class="home-main">
+    <div class="home-cards" id="home-cards"></div>
+    <!-- Join modal -->
     <div class="modal-backdrop" id="join-modal">
       <div class="modal">
-        <button class="modal-close" data-close="join-modal">✕</button>
-        <h2 class="modal-title">Join event room</h2>
-        <div class="field">
-          <label>Room code</label>
-          <input id="j-code" type="text" placeholder="A1B2C3" maxlength="6" class="mono big-input" style="text-transform:uppercase" autocomplete="off">
+        <button class="modal-close" onclick="closeModal('join-modal')">✕</button>
+        <h3 class="modal-title">Join event room</h3>
+        <div class="field"><label>Room code</label><input id="j-code" class="mono big-input" maxlength="6" placeholder="A1B2C3" style="text-transform:uppercase"></div>
+        <button class="btn-primary" onclick="joinRoom()">Join</button>
+        <p class="modal-error" id="join-error"></p>
+      </div>
+    </div>
+    <!-- Create modal (ATC only) -->
+    <div class="modal-backdrop" id="create-modal">
+      <div class="modal">
+        <button class="modal-close" onclick="closeModal('create-modal')">✕</button>
+        <h3 class="modal-title">Create event room</h3>
+        <div class="field"><label>Event name</label><input id="c-name" placeholder="Gulf SkyWay Cup — Round 3"></div>
+        <div class="field"><label>Airport ICAO</label><input id="c-airport" class="mono" maxlength="4" placeholder="OBBI" style="text-transform:uppercase"></div>
+        <button class="btn-primary" onclick="createRoom()">Create room</button>
+        <p class="modal-error" id="create-error"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4A: ATC BOARD
+═══════════════════════════════════════════════════════ -->
+<div id="screen-atc" class="screen" style="display:none">
+  <div class="board-nav">
+    <div class="board-nav-left">
+      <button class="back-btn" onclick="goHome()">← Back</button>
+      <span class="board-event-name" id="atc-event-name"></span>
+      <span class="board-room-code" id="atc-room-code"></span>
+    </div>
+    <div class="board-nav-right">
+      <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
+      <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-pdc-count">0</span> PDC pending</div>
+      <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
+      <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
+      <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
+    </div>
+  </div>
+
+  <!-- ATIS banner -->
+  <div class="atis-banner" id="atis-banner" style="display:none">
+    <span class="atis-letter" id="atis-letter"></span>
+    <span class="atis-raw" id="atis-raw"></span>
+  </div>
+
+  <!-- Strip columns -->
+  <div class="board-columns">
+    <div class="column">
+      <div class="col-header"><span class="col-dot dot-reg"></span><span>Registered</span><span class="col-count" id="cnt-registered">0</span></div>
+      <div class="col-strips" id="strips-registered"></div>
+    </div>
+    <div class="column">
+      <div class="col-header"><span class="col-dot dot-dep"></span><span>Departing</span><span class="col-count" id="cnt-departing">0</span></div>
+      <div class="col-strips" id="strips-departing"></div>
+    </div>
+    <div class="column">
+      <div class="col-header"><span class="col-dot dot-enr"></span><span>En Route</span><span class="col-count" id="cnt-enroute">0</span></div>
+      <div class="col-strips" id="strips-enroute"></div>
+    </div>
+    <div class="column">
+      <div class="col-header"><span class="col-dot dot-arr"></span><span>Arrived</span><span class="col-count" id="cnt-arrived">0</span></div>
+      <div class="col-strips" id="strips-arrived"></div>
+    </div>
+  </div>
+
+  <!-- ADD STRIP PANEL -->
+  <div class="side-panel" id="add-panel">
+    <div class="panel-header"><span>Add strip</span><button class="panel-close" onclick="closePanel('add-panel')">✕</button></div>
+    <div class="panel-body">
+      <div class="field"><label>Callsign</label><input id="a-cs" class="mono" maxlength="8" placeholder="KAV001" style="text-transform:uppercase"></div>
+      <div class="field-row">
+        <div class="field"><label>Aircraft</label><input id="a-ac" class="mono" maxlength="6" placeholder="B77W" style="text-transform:uppercase"></div>
+        <div class="field"><label>VA</label><input id="a-va" maxlength="12" placeholder="KAv"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Origin</label><input id="a-orig" class="mono" maxlength="4" placeholder="OBBI" style="text-transform:uppercase"></div>
+        <div class="field"><label>Dest</label><input id="a-dest" class="mono" maxlength="4" placeholder="OMDB" style="text-transform:uppercase"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Gate</label><input id="a-gate" class="mono" maxlength="6" placeholder="G14" style="text-transform:uppercase"></div>
+        <div class="field"><label>FL</label><input id="a-fl" class="mono" maxlength="6" placeholder="FL350" style="text-transform:uppercase"></div>
+      </div>
+      <div class="field"><label>Pilot username</label><input id="a-pilot" placeholder="PilotName"></div>
+      <div class="field"><label>Flight rules</label>
+        <select id="a-rules"><option value="IFR">IFR</option><option value="VFR">VFR</option></select>
+      </div>
+      <div class="field"><label>Remarks</label><input id="a-remarks" placeholder="Optional..."></div>
+      <button class="btn-primary" onclick="addStrip()">Add strip</button>
+    </div>
+  </div>
+
+  <!-- STRIP DETAIL PANEL -->
+  <div class="side-panel" id="detail-panel">
+    <div class="panel-header"><span id="d-cs-header">Strip</span><button class="panel-close" onclick="closePanel('detail-panel')">✕</button></div>
+    <div class="panel-body" id="detail-body"></div>
+  </div>
+
+  <!-- ATIS PANEL -->
+  <div class="side-panel" id="atis-panel">
+    <div class="panel-header"><span>Generate ATIS</span><button class="panel-close" onclick="closePanel('atis-panel')">✕</button></div>
+    <div class="panel-body">
+      <div class="field-row">
+        <div class="field"><label>Wind</label><input id="at-wind" class="mono" placeholder="270/15KT"></div>
+        <div class="field"><label>QNH</label><input id="at-qnh" class="mono" placeholder="1013"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Visibility</label><input id="at-vis" placeholder="10KM"></div>
+        <div class="field"><label>Active RWY</label><input id="at-rwy" class="mono" placeholder="12L"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Temp</label><input id="at-temp" class="mono" placeholder="25"></div>
+        <div class="field"><label>Dewpoint</label><input id="at-dew" class="mono" placeholder="15"></div>
+      </div>
+      <div class="field"><label>Cloud / WX</label><input id="at-cloud" placeholder="FEW018 SCT030"></div>
+      <div class="field"><label>Remarks</label><input id="at-remarks" placeholder="Birds on RWY..."></div>
+      <button class="btn-primary" onclick="generateATIS()">Broadcast ATIS</button>
+    </div>
+  </div>
+
+  <!-- PDC ISSUE PANEL -->
+  <div class="side-panel" id="pdc-panel">
+    <div class="panel-header"><span>Issue PDC Clearance</span><button class="panel-close" onclick="closePanel('pdc-panel')">✕</button></div>
+    <div class="panel-body">
+      <div class="pdc-pilot-info" id="pdc-pilot-info"></div>
+      <div class="field"><label>Squawk (auto-generated)</label><input id="pdc-squawk" class="mono" placeholder="Will be auto-assigned"></div>
+      <div class="field"><label>SID</label><input id="pdc-sid" class="mono" placeholder="DAVMO1A"></div>
+      <div class="field"><label>STAR</label><input id="pdc-star" class="mono" placeholder="VUTEB1A"></div>
+      <div class="field"><label>Cleared FL</label><input id="pdc-fl" class="mono" placeholder="FL350"></div>
+      <div class="field"><label>Frequency</label><input id="pdc-freq" class="mono" placeholder="118.30"></div>
+      <div class="field"><label>Additional remarks</label><textarea id="pdc-remarks" rows="3" placeholder="Contact Ground on 121.9 when ready for pushback..."></textarea></div>
+      <button class="btn-primary" onclick="issuePDC()">Issue Clearance</button>
+    </div>
+  </div>
+
+  <div class="toast" id="atc-toast"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4B: PILOT ACARS
+═══════════════════════════════════════════════════════ -->
+<div id="screen-pilot" class="screen" style="display:none">
+  <div class="board-nav">
+    <div class="board-nav-left">
+      <button class="back-btn" onclick="goHome()">← Back</button>
+      <span class="acars-title">ACARS TERMINAL</span>
+      <span class="board-room-code" id="pilot-room-code"></span>
+    </div>
+    <div class="board-nav-right">
+      <div class="nav-user" id="pilot-nav-user"></div>
+      <div class="stat-pill live"><span class="live-dot"></span><span id="pilot-stat-conn">0</span> online</div>
+    </div>
+  </div>
+
+  <div class="acars-layout">
+    <!-- LEFT: ATIS + messages -->
+    <div class="acars-left">
+      <div class="acars-section">
+        <div class="acars-section-title">📡 ATIS</div>
+        <div class="atis-display" id="pilot-atis">No ATIS broadcast yet.</div>
+      </div>
+      <div class="acars-section">
+        <div class="acars-section-title">📨 Messages</div>
+        <div class="msg-feed" id="pilot-messages"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Flight plan / clearance -->
+    <div class="acars-right">
+      <!-- STEP 1: File flight plan -->
+      <div class="acars-step" id="step-file">
+        <div class="acars-section-title">FILE FLIGHT PLAN</div>
+        <div class="field"><label>Callsign</label><input id="p-cs" class="mono" maxlength="8" placeholder="KAV001" style="text-transform:uppercase"></div>
+        <div class="field-row">
+          <div class="field"><label>Aircraft</label><input id="p-ac" class="mono" maxlength="6" placeholder="B77W" style="text-transform:uppercase"></div>
+          <div class="field"><label>VA</label><input id="p-va" maxlength="12" placeholder="KAv"></div>
         </div>
-        <div class="field">
-          <label>Your username</label>
-          <input id="j-user" type="text" placeholder="Pilot_Name" autocomplete="off">
+        <div class="field-row">
+          <div class="field"><label>Origin</label><input id="p-orig" class="mono" maxlength="4" placeholder="OBBI" style="text-transform:uppercase"></div>
+          <div class="field"><label>Dest</label><input id="p-dest" class="mono" maxlength="4" placeholder="OMDB" style="text-transform:uppercase"></div>
         </div>
-        <button class="btn-primary" id="join-btn">Join room</button>
-        <p class="modal-hint" id="join-error"></p>
+        <div class="field-row">
+          <div class="field"><label>Gate</label><input id="p-gate" class="mono" maxlength="6" placeholder="G14" style="text-transform:uppercase"></div>
+          <div class="field"><label>Req FL</label><input id="p-fl" class="mono" maxlength="6" placeholder="FL350" style="text-transform:uppercase"></div>
+        </div>
+        <div class="field"><label>Flight rules</label>
+          <div class="toggle-row">
+            <button class="toggle-btn active" id="btn-ifr" onclick="setFlightRules('IFR')">IFR</button>
+            <button class="toggle-btn" id="btn-vfr" onclick="setFlightRules('VFR')">VFR</button>
+          </div>
+        </div>
+        <div class="field"><label>Route</label><input id="p-route" class="mono" placeholder="DAVMO DCT VUTEB"></div>
+        <div class="field"><label>Remarks</label><input id="p-remarks" placeholder="Optional..."></div>
+        <button class="btn-primary" onclick="fileFlight()">File & Request PDC</button>
+      </div>
+
+      <!-- STEP 2: Waiting for clearance -->
+      <div class="acars-step" id="step-waiting" style="display:none">
+        <div class="acars-section-title">PDC STATUS</div>
+        <div class="pdc-waiting">
+          <div class="pdc-spinner"></div>
+          <div class="pdc-wait-text">Flight plan filed.<br>Awaiting PDC clearance from ATC...</div>
+          <div class="pdc-filed-info" id="pdc-filed-info"></div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Clearance received -->
+      <div class="acars-step" id="step-clearance" style="display:none">
+        <div class="acars-section-title">✅ PDC CLEARANCE RECEIVED</div>
+        <div class="clearance-block" id="clearance-block"></div>
+        <button class="btn-secondary" onclick="showRatePanel()">Rate Controller</button>
       </div>
     </div>
   </div>
 
-  <!-- STRIP BOARD -->
-  <div id="board-screen" style="display:none">
-    <div class="board-nav">
-      <div class="board-nav-left">
-        <button class="back-btn" id="back-btn">← Back</button>
-        <div class="board-event-info">
-          <span class="board-event-name" id="board-event-name">—</span>
-          <span class="board-room-code" id="board-room-code">—</span>
+  <!-- RATE ATC PANEL -->
+  <div class="side-panel" id="rate-panel">
+    <div class="panel-header"><span>Rate your controller</span><button class="panel-close" onclick="closePanel('rate-panel')">✕</button></div>
+    <div class="panel-body">
+      <div class="field"><label>Stars</label>
+        <div class="star-row" id="star-row">
+          <span class="star" data-v="1">★</span>
+          <span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span>
+          <span class="star" data-v="4">★</span>
+          <span class="star" data-v="5">★</span>
         </div>
       </div>
-      <div class="board-nav-right">
-        <div class="stat-pill"><span id="stat-total">0</span> total</div>
-        <div class="stat-pill live"><span class="live-dot"></span><span id="stat-conn">0</span> online</div>
-        <button class="btn-add" id="open-add-btn">+ Add strip</button>
-      </div>
+      <div class="field"><label>Comment</label><textarea id="rate-comment" rows="3" placeholder="How was your ATC experience?"></textarea></div>
+      <button class="btn-primary" onclick="submitRating()">Submit rating</button>
     </div>
-
-    <div class="board-columns" id="board-columns">
-      <div class="column" data-status="registered">
-        <div class="col-header">
-          <span class="col-dot dot-reg"></span>
-          <span class="col-title">Registered</span>
-          <span class="col-count" id="cnt-registered">0</span>
-        </div>
-        <div class="col-strips" id="strips-registered"></div>
-      </div>
-      <div class="column" data-status="departing">
-        <div class="col-header">
-          <span class="col-dot dot-dep"></span>
-          <span class="col-title">Departing</span>
-          <span class="col-count" id="cnt-departing">0</span>
-        </div>
-        <div class="col-strips" id="strips-departing"></div>
-      </div>
-      <div class="column" data-status="enroute">
-        <div class="col-header">
-          <span class="col-dot dot-enr"></span>
-          <span class="col-title">En Route</span>
-          <span class="col-count" id="cnt-enroute">0</span>
-        </div>
-        <div class="col-strips" id="strips-enroute"></div>
-      </div>
-      <div class="column" data-status="arrived">
-        <div class="col-header">
-          <span class="col-dot dot-arr"></span>
-          <span class="col-title">Arrived</span>
-          <span class="col-count" id="cnt-arrived">0</span>
-        </div>
-        <div class="col-strips" id="strips-arrived"></div>
-      </div>
-    </div>
-
-    <!-- ADD STRIP PANEL -->
-    <div class="side-panel" id="add-panel">
-      <div class="panel-header">
-        <span>Add flight strip</span>
-        <button class="panel-close" id="close-add-btn">✕</button>
-      </div>
-      <div class="panel-body">
-        <div class="field">
-          <label>Callsign</label>
-          <input id="a-cs" class="mono" type="text" placeholder="KAV001" maxlength="8" style="text-transform:uppercase">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Aircraft</label>
-            <input id="a-ac" class="mono" type="text" placeholder="B77W" maxlength="6" style="text-transform:uppercase">
-          </div>
-          <div class="field">
-            <label>VA / Airline</label>
-            <input id="a-va" type="text" placeholder="KAv" maxlength="12">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Origin</label>
-            <input id="a-orig" class="mono" type="text" placeholder="OBBI" maxlength="4" style="text-transform:uppercase">
-          </div>
-          <div class="field">
-            <label>Destination</label>
-            <input id="a-dest" class="mono" type="text" placeholder="OMDB" maxlength="4" style="text-transform:uppercase">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Gate</label>
-            <input id="a-gate" class="mono" type="text" placeholder="G14" maxlength="6" style="text-transform:uppercase">
-          </div>
-          <div class="field">
-            <label>Flight Level</label>
-            <input id="a-fl" class="mono" type="text" placeholder="FL350" maxlength="6" style="text-transform:uppercase">
-          </div>
-        </div>
-        <div class="field">
-          <label>Pilot username</label>
-          <input id="a-pilot" type="text" placeholder="PilotName">
-        </div>
-        <div class="field">
-          <label>Remarks (optional)</label>
-          <input id="a-remarks" type="text" placeholder="VIP, late departure...">
-        </div>
-        <button class="btn-primary w-full" id="add-strip-btn">Add strip</button>
-      </div>
-    </div>
-
-    <!-- STRIP DETAIL PANEL -->
-    <div class="side-panel" id="detail-panel">
-      <div class="panel-header">
-        <span id="d-callsign-header">Strip detail</span>
-        <button class="panel-close" id="close-detail-btn">✕</button>
-      </div>
-      <div class="panel-body">
-        <div class="detail-top">
-          <div class="detail-cs" id="d-cs">—</div>
-          <div class="detail-sub" id="d-sub">—</div>
-        </div>
-        <div class="detail-grid" id="d-grid"></div>
-        <div class="detail-section-label">Move to status</div>
-        <div class="status-btn-list" id="status-btns"></div>
-        <div class="detail-section-label" style="margin-top:16px">Remarks</div>
-        <textarea id="d-remarks" rows="2" placeholder="Add a note..."></textarea>
-        <button class="btn-secondary w-full" id="save-remarks-btn">Save remarks</button>
-        <button class="btn-danger w-full" id="delete-strip-btn">Remove strip</button>
-      </div>
-    </div>
-
-    <!-- NOTIFICATION TOAST -->
-    <div class="toast" id="toast"></div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
+  <div class="toast" id="pilot-toast"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
