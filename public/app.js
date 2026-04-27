@@ -426,29 +426,82 @@ function renderATISBanner(atis) {
 }
 
 // ── PILOT ACARS ────────────────────────────────────────────
+// ── TERMINAL HELPERS ──────────────────────────────────────
+function termLine(msg, color='', source='[SYSTEM]', sourceClass='system') {
+  const term = document.getElementById('acars-terminal');
+  if (!term) return;
+  const now = new Date().toISOString().slice(11,16) + 'Z';
+  const line = document.createElement('div');
+  line.className = 'term-line';
+  line.innerHTML = `<span class="term-time">${now}</span><span class="term-source ${sourceClass}">${source}:</span><span class="term-msg ${color}">${msg}</span>`;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
 function launchPilotACARs(room) {
   show('screen-pilot');
   document.getElementById('pilot-room-code').textContent = room.id;
-  document.getElementById('pilot-nav-user').textContent = S.user.username;
+  document.getElementById('pilot-event-name').textContent = room.eventName;
+  document.getElementById('acars-callsign-title').textContent = 'ACARS';
   updatePilotStats(room);
   if (room.atis) renderPilotATIS(room.atis);
+
+  // Boot messages
+  setTimeout(() => {
+    termLine('DO NOT CLOSE THIS WINDOW. CONTROLLERS MAY SEND PRE DEPARTURE CLEARANCES THROUGH THE ACARS TERMINAL', 'red');
+    termLine('System ready. File a flight plan to begin.', 'dim');
+  }, 300);
+
+  // Init star listeners
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', () => {
+      S.starRating = parseInt(star.dataset.v);
+      document.querySelectorAll('.star').forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.v) <= S.starRating);
+      });
+    });
+  });
 }
 
 function updatePilotStats(room) {
-  document.getElementById('pilot-stat-conn').textContent = room.connectedCount || 1;
+  const el = document.getElementById('pilot-stat-conn');
+  if (el) el.textContent = room.connectedCount || 1;
+  // Update controllers panel
+  renderControllers(room);
+  if (room.atis) renderPilotATIS(room.atis);
+}
+
+function renderControllers(room) {
+  const el = document.getElementById('controllers-list');
+  if (!el) return;
+  // Show connected ATCs from strips metadata — simple version shows event airport
+  if (room.airport) {
+    el.innerHTML = `
+      <div class="controller-item">
+        <span class="ctrl-airport">${room.airport}</span>
+        <img class="ctrl-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
+        <div class="ctrl-info">
+          <div class="ctrl-name">Event ATC</div>
+          <div class="ctrl-pos">APP</div>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = '<div class="alp-empty">No controllers online</div>';
+  }
 }
 
 function renderPilotATIS(atis) {
-  document.getElementById('pilot-atis').textContent = atis.raw;
+  const list = document.getElementById('atis-list');
+  if (!list) return;
+  list.innerHTML = `
+    <div class="atis-item">
+      <div class="atis-airport">${S.room?.airport || 'EVENT'} ATIS ${atis.letter}</div>
+      <div class="atis-text">${atis.raw}</div>
+    </div>`;
 }
 
 function addPilotMessage(text) {
-  const feed = document.getElementById('pilot-messages');
-  if (!feed) return;
-  const div = document.createElement('div');
-  div.className = 'msg-item';
-  div.textContent = text;
-  feed.prepend(div);
+  termLine(text, 'cyan', '[MSG]', 'atc');
 }
 
 // Flight rules toggle
@@ -457,6 +510,8 @@ function setFlightRules(rules) {
   document.getElementById('btn-ifr').classList.toggle('active', rules === 'IFR');
   document.getElementById('btn-vfr').classList.toggle('active', rules === 'VFR');
 }
+
+function openFilingModal() { openModal('filing-modal'); }
 
 // File flight plan
 function fileFlight() {
@@ -473,27 +528,68 @@ function fileFlight() {
     fl:       document.getElementById('p-fl').value.trim().toUpperCase(),
     flightRules: S.flightRules,
     route:    document.getElementById('p-route').value.trim().toUpperCase(),
+    runway:   document.getElementById('p-rwy').value.trim().toUpperCase(),
     remarks:  document.getElementById('p-remarks').value.trim()
   };
 
+  closeModal('filing-modal');
   socket.emit('flightplan:file', { roomId: S.room.id, plan });
 
-  // Show filed info in waiting step
-  document.getElementById('pdc-filed-info').innerHTML =
-    `CALLSIGN: ${plan.callsign}\nAIRCRAFT: ${plan.actype}\nRULES:    ${plan.flightRules}\n` +
-    `ROUTE:    ${plan.orig} → ${plan.dest}\nFL REQ:   ${plan.fl || 'N/A'}\nGATE:     ${plan.gate || 'N/A'}`;
+  // Update callsign in header
+  document.getElementById('acars-callsign-title').textContent = cs + ' ACARS';
 
-  document.getElementById('step-file').style.display = 'none';
-  document.getElementById('step-waiting').style.display = '';
+  // Print to terminal
+  termLine('FLIGHT PLAN DETAILS,', 'white');
+  termLine(`    CALLSIGN: ${plan.callsign} (${plan.va || 'Independent'}),`, 'white');
+  termLine(`    TYPE: ${plan.actype},`, 'white');
+  termLine(`    RULES: ${plan.flightRules},`, 'white');
+  termLine(`    STAND: ${plan.gate || 'N/A'},`, 'white');
+  if (plan.runway) termLine(`    RUNWAY: ${plan.runway},`, 'white');
+  termLine(`    DEPARTING: ${plan.orig},`, 'white');
+  termLine(`    ARRIVING: ${plan.dest}`, 'white');
+  if (plan.route) termLine(`    ROUTE: ${plan.route}`, 'white');
+  if (plan.fl) termLine(`    CRUISING FL: ${plan.fl}`, 'white');
+  termLine(`FLIGHT PLAN: ${plan.callsign} SUBMITTED SUCCESSFULLY`, 'green');
+
+  // Switch input bar to PDC request
+  document.getElementById('acars-preflight-bar').style.display = 'none';
+  document.getElementById('acars-pdc-bar').style.display = 'flex';
+
+  // Update flight notes panel
+  renderFlightNotes(plan);
+}
+
+function renderFlightNotes(plan) {
+  const el = document.getElementById('flight-notes');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="fn-row"><div class="fn-key">Callsign</div><div class="fn-val">${plan.callsign}${plan.va ? ' ('+plan.va+')' : ''}</div></div>
+    <div class="fn-row"><div class="fn-key">Aircraft</div><div class="fn-val">${plan.actype}</div></div>
+    <div class="fn-row"><div class="fn-key">Flight Type</div><div class="fn-val">${plan.flightRules}</div></div>
+    <div class="fn-divider"></div>
+    <div class="fn-row"><div class="fn-key">Departure</div><div class="fn-val">${plan.orig}</div></div>
+    <div class="fn-row"><div class="fn-key">Arrival</div><div class="fn-val">${plan.dest}</div></div>
+    ${plan.gate ? `<div class="fn-row"><div class="fn-key">Stand</div><div class="fn-val">${plan.gate}</div></div>` : ''}
+    ${plan.runway ? `<div class="fn-row"><div class="fn-key">Runway</div><div class="fn-val">${plan.runway}</div></div>` : ''}
+    ${plan.fl ? `<div class="fn-row"><div class="fn-key">Cruising FL</div><div class="fn-val">${plan.fl}</div></div>` : ''}
+    ${plan.route ? `<div class="fn-row"><div class="fn-key">Route</div><div class="fn-val" style="font-size:10px">${plan.route}</div></div>` : ''}
+    <div class="fn-divider"></div>
+    <div class="fn-row"><div class="fn-key">Notes</div><textarea class="fn-notes-area" rows="4" placeholder="Add personal notes..."></textarea></div>
+  `;
+}
+
+function requestPDC() {
+  if (!S.myStripId) { toast('pilot-toast', 'Flight plan not filed yet'); return; }
+  socket.emit('pdc:request', { roomId: S.room.id, stripId: S.myStripId });
+  termLine('PRE-DEPARTURE CLEARANCE REQUESTED. STANDBY...', 'yellow');
 }
 
 socket.on('flightplan:accepted', ({ stripId }) => {
   S.myStripId = stripId;
 });
 
-// Listen for clearance pushed to this pilot
+// Listen for clearance
 socket.on('room:update', (room) => {
-  // Already handled above, but double-check clearance
   if (S.myStripId && S.user.role === 'pilot') {
     const strip = room.strips.find(s => s.id === S.myStripId);
     if (strip?.pdcStatus === 'issued' && strip.clearance) {
@@ -502,42 +598,52 @@ socket.on('room:update', (room) => {
   }
 });
 
+let clearanceShown = false;
 function showClearance(strip) {
-  if (document.getElementById('step-clearance').style.display !== 'none') return; // already shown
-  document.getElementById('step-waiting').style.display = 'none';
-  document.getElementById('step-clearance').style.display = '';
-
+  if (clearanceShown) return;
+  clearanceShown = true;
   S.atcIdForRating = strip.clearance.issuedByDiscordId || null;
 
-  document.getElementById('clearance-block').innerHTML = `
-    <div class="cl-row"><span class="cl-k">CALLSIGN</span><span class="cl-v">${strip.callsign}</span></div>
-    <div class="cl-row"><span class="cl-k">SQUAWK</span><span class="cl-v sq">${strip.squawk}</span></div>
-    <div class="cl-row"><span class="cl-k">FLIGHT RULES</span><span class="cl-v">${strip.flightRules}</span></div>
-    <div class="cl-row"><span class="cl-k">CLEARED TO</span><span class="cl-v">${strip.dest}</span></div>
-    <div class="cl-row"><span class="cl-k">CLEARED FL</span><span class="cl-v green">${strip.clearance.fl || strip.fl}</span></div>
-    ${strip.clearance.sid ? `<div class="cl-row"><span class="cl-k">SID</span><span class="cl-v green">${strip.clearance.sid}</span></div>` : ''}
-    ${strip.clearance.star ? `<div class="cl-row"><span class="cl-k">STAR</span><span class="cl-v">${strip.clearance.star}</span></div>` : ''}
-    ${strip.clearance.freq ? `<div class="cl-row"><span class="cl-k">FREQ</span><span class="cl-v">${strip.clearance.freq}</span></div>` : ''}
-    ${strip.clearance.remarks ? `<div class="cl-row"><span class="cl-k">REMARKS</span><span class="cl-v" style="font-size:11px;text-align:right;max-width:160px">${strip.clearance.remarks}</span></div>` : ''}
-    <div class="cl-row"><span class="cl-k">ISSUED BY</span><span class="cl-v">${strip.clearance.issuedBy}</span></div>
-  `;
+  // Print clearance to terminal
+  termLine('═══════════════════════════════════════════════', 'dim');
+  termLine('PRE-DEPARTURE CLEARANCE', 'green');
+  termLine('═══════════════════════════════════════════════', 'dim');
+  termLine(`CALLSIGN: ${strip.callsign}`, 'white');
+  termLine(`SQUAWK: ${strip.squawk}`, 'green');
+  termLine(`FLIGHT RULES: ${strip.flightRules}`, 'white');
+  termLine(`CLEARED TO: ${strip.dest}`, 'white');
+  termLine(`CLEARED FL: ${strip.clearance.fl || strip.fl}`, 'green');
+  if (strip.clearance.sid)  termLine(`SID: ${strip.clearance.sid}`, 'white');
+  if (strip.clearance.star) termLine(`STAR: ${strip.clearance.star}`, 'white');
+  if (strip.clearance.freq) termLine(`FREQUENCY: ${strip.clearance.freq}`, 'white');
+  if (strip.clearance.remarks) termLine(`REMARKS: ${strip.clearance.remarks}`, 'yellow');
+  termLine(`ISSUED BY: ${strip.clearance.issuedBy}`, 'dim');
+  termLine('═══════════════════════════════════════════════', 'dim');
+
+  // Update flight notes with squawk
+  const fn = document.getElementById('flight-notes');
+  if (fn) {
+    const sqRow = document.createElement('div');
+    sqRow.className = 'fn-row';
+    sqRow.innerHTML = `<div class="fn-key">Squawk</div><div class="fn-val highlight">${strip.squawk}</div>`;
+    fn.insertBefore(sqRow, fn.firstChild);
+    if (strip.clearance.sid) {
+      const sidRow = document.createElement('div');
+      sidRow.className = 'fn-row';
+      sidRow.innerHTML = `<div class="fn-key">SID</div><div class="fn-val accent">${strip.clearance.sid}</div>`;
+      fn.insertBefore(sidRow, fn.children[1]);
+    }
+  }
+
+  // Switch bar to rate controller
+  document.getElementById('acars-pdc-bar').style.display = 'none';
+  document.getElementById('acars-post-bar').style.display = 'flex';
 
   toast('pilot-toast', `✅ PDC received — Squawk ${strip.squawk}`);
 }
 
 // ── Pilot: rate ATC ────────────────────────────────────────
-function showRatePanel() {
-  openPanel('rate-panel');
-  // Star interactions
-  document.querySelectorAll('.star').forEach(star => {
-    star.addEventListener('click', () => {
-      S.starRating = parseInt(star.dataset.v);
-      document.querySelectorAll('.star').forEach(s => {
-        s.classList.toggle('active', parseInt(s.dataset.v) <= S.starRating);
-      });
-    });
-  });
-}
+function showRateModal() { openModal('rate-modal'); }
 
 function submitRating() {
   if (!S.starRating) { toast('pilot-toast', 'Pick a star rating'); return; }
@@ -546,7 +652,8 @@ function submitRating() {
     stars: S.starRating,
     comment: document.getElementById('rate-comment').value.trim()
   });
-  closePanel('rate-panel');
+  closeModal('rate-modal');
+  termLine(`Rating submitted: ${S.starRating}★ — Thank you!`, 'green');
   toast('pilot-toast', 'Rating submitted — thanks!');
 }
 

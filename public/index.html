@@ -27,22 +27,7 @@
       </a>
       <div id="login-error" class="error-msg"></div>
     </div>
-    <div class="hero-preview" aria-hidden="true">
-      <div class="preview-card atc-card">
-        <div class="preview-label">ATC VIEW</div>
-        <div class="preview-strip dep"><span class="ps-cs">KAV001</span><span class="ps-route">OBBI→OMDB</span><span class="ps-sq">SQ:2341</span></div>
-        <div class="preview-strip enr"><span class="ps-cs">GUL201</span><span class="ps-route">OBBI→OMDB</span><span class="ps-sq">SQ:4412</span></div>
-        <div class="preview-strip reg"><span class="ps-cs">ARA501</span><span class="ps-route">OBBI→OMDB</span><span class="ps-badge pdc-pending">PDC PENDING</span></div>
-      </div>
-      <div class="preview-card pilot-card">
-        <div class="preview-label">PILOT ACARS</div>
-        <div class="acars-row"><span class="acars-k">CALLSIGN</span><span class="acars-v">KAV001</span></div>
-        <div class="acars-row"><span class="acars-k">SQUAWK</span><span class="acars-v sq">2341</span></div>
-        <div class="acars-row"><span class="acars-k">SID</span><span class="acars-v">DAVMO1A</span></div>
-        <div class="acars-row"><span class="acars-k">FL</span><span class="acars-v">FL350</span></div>
-        <div class="acars-status">✅ CLEARANCE RECEIVED</div>
-      </div>
-    </div>
+
   </main>
 </div>
 
@@ -238,83 +223,105 @@
      SCREEN 4B: PILOT ACARS
 ═══════════════════════════════════════════════════════ -->
 <div id="screen-pilot" class="screen" style="display:none">
-  <div class="board-nav">
-    <div class="board-nav-left">
-      <button class="back-btn" onclick="goHome()">← Back</button>
-      <span class="acars-title">ACARS TERMINAL</span>
-      <span class="board-room-code" id="pilot-room-code"></span>
+  <div class="acars-wrapper">
+
+    <!-- LEFT PANEL: Controllers + ATIS -->
+    <div class="acars-left-panel">
+      <div class="alp-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="alp-event" id="pilot-event-name"></span>
+      </div>
+
+      <div class="alp-section-title">Controllers</div>
+      <div class="controllers-list" id="controllers-list">
+        <div class="alp-empty">No controllers online</div>
+      </div>
+
+      <div class="alp-section-title" style="margin-top:16px">
+        <span>((·)) ATIS</span>
+      </div>
+      <div class="atis-list" id="atis-list">
+        <div class="alp-empty">No ATIS broadcast yet</div>
+      </div>
     </div>
-    <div class="board-nav-right">
-      <div class="nav-user" id="pilot-nav-user"></div>
-      <div class="stat-pill live"><span class="live-dot"></span><span id="pilot-stat-conn">0</span> online</div>
+
+    <!-- CENTER: ACARS Terminal -->
+    <div class="acars-terminal-wrap">
+      <div class="acars-terminal-header">
+        <span class="term-icon">▶</span>
+        <span id="acars-callsign-title">ACARS</span>
+        <div class="term-header-right">
+          <span class="board-room-code" id="pilot-room-code"></span>
+          <div class="stat-pill live"><span class="live-dot"></span><span id="pilot-stat-conn">0</span> online</div>
+        </div>
+      </div>
+
+      <div class="acars-terminal" id="acars-terminal"></div>
+
+      <div class="acars-input-bar">
+        <!-- Before filing -->
+        <div id="acars-preflight-bar">
+          <button class="acars-action-btn" onclick="openFilingModal()">FILE FLIGHT PLAN</button>
+        </div>
+        <!-- After filing, waiting for PDC -->
+        <div id="acars-pdc-bar" style="display:none">
+          <button class="acars-pdc-btn" onclick="requestPDC()">REQUEST PDC</button>
+        </div>
+        <!-- After PDC issued -->
+        <div id="acars-post-bar" style="display:none">
+          <button class="acars-rate-btn" onclick="showRateModal()">RATE CONTROLLER</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Flight Notes -->
+    <div class="acars-right-panel">
+      <div class="alp-section-title">
+        <span>🗒 Flight Notes</span>
+      </div>
+      <div class="flight-notes" id="flight-notes">
+        <div class="fn-empty">File a flight plan to see your details here.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FILING MODAL -->
+  <div class="modal-backdrop" id="filing-modal">
+    <div class="modal" style="width:420px">
+      <button class="modal-close" onclick="closeModal('filing-modal')">✕</button>
+      <h3 class="modal-title">File Flight Plan</h3>
+      <div class="field"><label>Callsign</label><input id="p-cs" class="mono" maxlength="8" placeholder="KAV001" style="text-transform:uppercase"></div>
+      <div class="field-row">
+        <div class="field"><label>Aircraft</label><input id="p-ac" class="mono" maxlength="6" placeholder="B77W" style="text-transform:uppercase"></div>
+        <div class="field"><label>VA / Airline</label><input id="p-va" maxlength="12" placeholder="KAv"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Origin</label><input id="p-orig" class="mono" maxlength="4" placeholder="OBBI" style="text-transform:uppercase"></div>
+        <div class="field"><label>Destination</label><input id="p-dest" class="mono" maxlength="4" placeholder="OMDB" style="text-transform:uppercase"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Gate / Stand</label><input id="p-gate" class="mono" maxlength="6" placeholder="G14" style="text-transform:uppercase"></div>
+        <div class="field"><label>Requested FL</label><input id="p-fl" class="mono" maxlength="6" placeholder="FL350" style="text-transform:uppercase"></div>
+      </div>
+      <div class="field"><label>Flight Rules</label>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="btn-ifr" onclick="setFlightRules('IFR')">IFR</button>
+          <button class="toggle-btn" id="btn-vfr" onclick="setFlightRules('VFR')">VFR</button>
+        </div>
+      </div>
+      <div class="field"><label>Route</label><input id="p-route" class="mono" placeholder="DAVMO DCT VUTEB"></div>
+      <div class="field"><label>Runway</label><input id="p-rwy" class="mono" maxlength="4" placeholder="12L" style="text-transform:uppercase"></div>
+      <div class="field"><label>Remarks</label><input id="p-remarks" placeholder="Optional..."></div>
+      <button class="btn-primary" onclick="fileFlight()">Submit Flight Plan</button>
     </div>
   </div>
 
-  <div class="acars-layout">
-    <!-- LEFT: ATIS + messages -->
-    <div class="acars-left">
-      <div class="acars-section">
-        <div class="acars-section-title">📡 ATIS</div>
-        <div class="atis-display" id="pilot-atis">No ATIS broadcast yet.</div>
-      </div>
-      <div class="acars-section">
-        <div class="acars-section-title">📨 Messages</div>
-        <div class="msg-feed" id="pilot-messages"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Flight plan / clearance -->
-    <div class="acars-right">
-      <!-- STEP 1: File flight plan -->
-      <div class="acars-step" id="step-file">
-        <div class="acars-section-title">FILE FLIGHT PLAN</div>
-        <div class="field"><label>Callsign</label><input id="p-cs" class="mono" maxlength="8" placeholder="KAV001" style="text-transform:uppercase"></div>
-        <div class="field-row">
-          <div class="field"><label>Aircraft</label><input id="p-ac" class="mono" maxlength="6" placeholder="B77W" style="text-transform:uppercase"></div>
-          <div class="field"><label>VA</label><input id="p-va" maxlength="12" placeholder="KAv"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Origin</label><input id="p-orig" class="mono" maxlength="4" placeholder="OBBI" style="text-transform:uppercase"></div>
-          <div class="field"><label>Dest</label><input id="p-dest" class="mono" maxlength="4" placeholder="OMDB" style="text-transform:uppercase"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Gate</label><input id="p-gate" class="mono" maxlength="6" placeholder="G14" style="text-transform:uppercase"></div>
-          <div class="field"><label>Req FL</label><input id="p-fl" class="mono" maxlength="6" placeholder="FL350" style="text-transform:uppercase"></div>
-        </div>
-        <div class="field"><label>Flight rules</label>
-          <div class="toggle-row">
-            <button class="toggle-btn active" id="btn-ifr" onclick="setFlightRules('IFR')">IFR</button>
-            <button class="toggle-btn" id="btn-vfr" onclick="setFlightRules('VFR')">VFR</button>
-          </div>
-        </div>
-        <div class="field"><label>Route</label><input id="p-route" class="mono" placeholder="DAVMO DCT VUTEB"></div>
-        <div class="field"><label>Remarks</label><input id="p-remarks" placeholder="Optional..."></div>
-        <button class="btn-primary" onclick="fileFlight()">File & Request PDC</button>
-      </div>
-
-      <!-- STEP 2: Waiting for clearance -->
-      <div class="acars-step" id="step-waiting" style="display:none">
-        <div class="acars-section-title">PDC STATUS</div>
-        <div class="pdc-waiting">
-          <div class="pdc-spinner"></div>
-          <div class="pdc-wait-text">Flight plan filed.<br>Awaiting PDC clearance from ATC...</div>
-          <div class="pdc-filed-info" id="pdc-filed-info"></div>
-        </div>
-      </div>
-
-      <!-- STEP 3: Clearance received -->
-      <div class="acars-step" id="step-clearance" style="display:none">
-        <div class="acars-section-title">✅ PDC CLEARANCE RECEIVED</div>
-        <div class="clearance-block" id="clearance-block"></div>
-        <button class="btn-secondary" onclick="showRatePanel()">Rate Controller</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- RATE ATC PANEL -->
-  <div class="side-panel" id="rate-panel">
-    <div class="panel-header"><span>Rate your controller</span><button class="panel-close" onclick="closePanel('rate-panel')">✕</button></div>
-    <div class="panel-body">
+  <!-- RATE MODAL -->
+  <div class="modal-backdrop" id="rate-modal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('rate-modal')">✕</button>
+      <h3 class="modal-title">Rate your controller</h3>
       <div class="field"><label>Stars</label>
         <div class="star-row" id="star-row">
           <span class="star" data-v="1">★</span>
@@ -325,7 +332,10 @@
         </div>
       </div>
       <div class="field"><label>Comment</label><textarea id="rate-comment" rows="3" placeholder="How was your ATC experience?"></textarea></div>
-      <button class="btn-primary" onclick="submitRating()">Submit rating</button>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="btn-secondary" style="margin:0" onclick="closeModal('rate-modal')">Skip</button>
+        <button class="btn-primary" style="margin:0" onclick="submitRating()">Submit Rating</button>
+      </div>
     </div>
   </div>
 
