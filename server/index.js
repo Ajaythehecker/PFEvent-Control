@@ -19,12 +19,17 @@ const SESSION_SECRET        = process.env.SESSION_SECRET || 'pfevent-super-secre
 const PORT                  = process.env.PORT || 3000;
 
 // ── Middleware ─────────────────────────────────────────────
+app.set('trust proxy', 1); // Render sits behind a proxy
 app.use(express.json());
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
+  cookie: {
+    secure: true,       // HTTPS on Render
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 app.use(express.static(path.join(__dirname, '../public')));
 
