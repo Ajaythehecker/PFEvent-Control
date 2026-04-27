@@ -1,4 +1,3 @@
-cat > /home/claude/vacontrol-render/public/app.js << 'JSEOF'
 /* ============================================================
    PFEvent Control — client app.js
    Roles: ATC | Pilot
@@ -19,26 +18,44 @@ const S = {
 };
 
 // ── Boot: check who's logged in ────────────────────────────
-(async () => {
-  const res = await fetch('/api/me');
-  const { user } = await res.json();
+async function boot() {
+  try {
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    const user = data.user;
+    console.log('[boot] /api/me returned:', user);
 
-  const err = new URLSearchParams(location.search).get('error');
-  if (err) document.getElementById('login-error').textContent =
-    err === 'auth_failed' ? 'Discord login failed. Try again.' : 'Something went wrong.';
+    const err = new URLSearchParams(location.search).get('error');
+    if (err) {
+      const el = document.getElementById('login-error');
+      if (el) el.textContent = err === 'auth_failed' ? 'Discord login failed. Try again.' : 'Error: ' + err;
+    }
 
-  if (!user) {
+    if (!user) {
+      show('screen-login');
+      return;
+    }
+    S.user = user;
+    if (!user.role) {
+      show('screen-role');
+      renderNavUser('nav-user-role');
+    } else {
+      showHome();
+    }
+  } catch (e) {
+    console.error('[boot] failed:', e);
     show('screen-login');
-    return;
+    const el = document.getElementById('login-error');
+    if (el) el.textContent = 'Failed to connect to server. Try refreshing.';
   }
-  S.user = user;
-  if (!user.role) {
-    show('screen-role');
-    renderNavUser('nav-user-role');
-  } else {
-    showHome();
-  }
-})();
+}
+
+// Wait for DOM then boot
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
 
 // ── Screen helpers ─────────────────────────────────────────
 function show(id) {
@@ -567,4 +584,3 @@ document.addEventListener('keydown', e => {
     setTimeout(() => document.getElementById('a-cs')?.focus(), 50);
   }
 });
-JSEOF
