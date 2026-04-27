@@ -134,6 +134,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     };
 
     req.session.userId = discordUser.id;
+    req.session.userData = users[discordUser.id]; // persist in session for restart resilience
     req.session.save((saveErr) => {
       if (saveErr) {
         console.error('[OAuth] session save failed:', saveErr);
@@ -154,18 +155,30 @@ app.get('/auth/logout', (req, res) => {
 });
 
 // ── API: current user ──────────────────────────────────────
+// Helper: get user from memory OR session (survives restarts)
+function getUser(req) {
+  if (!req.session.userId) return null;
+  // Restore from session if memory was wiped (e.g. Render restart)
+  if (!users[req.session.userId] && req.session.userData) {
+    users[req.session.userId] = req.session.userData;
+  }
+  return users[req.session.userId] || null;
+}
+
 app.get('/api/me', (req, res) => {
-  const user = users[req.session.userId];
+  const user = getUser(req);
+  console.log('[/api/me] sessionId:', req.session.id, 'userId:', req.session.userId, 'user:', user?.username || 'null');
   if (!user) return res.json({ user: null });
   res.json({ user });
 });
 
 app.post('/api/me/role', (req, res) => {
-  const user = users[req.session.userId];
+  const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const { role } = req.body;
   if (!['pilot', 'atc'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   user.role = role;
+  req.session.userData = user; // keep session in sync
   res.json({ user });
 });
 
