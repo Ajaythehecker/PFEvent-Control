@@ -93,11 +93,12 @@ app.get('/auth/discord', (req, res) => {
 });
 
 app.get('/auth/discord/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, error } = req.query;
+  console.log('[OAuth] callback hit, code:', code ? 'YES' : 'NO', 'error:', error);
+  if (error) return res.redirect('/?error=' + error);
   if (!code) return res.redirect('/?error=no_code');
 
   try {
-    // Exchange code for token
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -110,15 +111,18 @@ app.get('/auth/discord/callback', async (req, res) => {
       })
     });
     const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) throw new Error('No access token');
+    console.log('[OAuth] token keys:', Object.keys(tokenData));
+    if (!tokenData.access_token) {
+      console.error('[OAuth] no access_token:', JSON.stringify(tokenData));
+      throw new Error('No access token');
+    }
 
-    // Get user info
     const userRes = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
     const discordUser = await userRes.json();
+    console.log('[OAuth] user:', discordUser.id, discordUser.username);
 
-    // Store in memory
     users[discordUser.id] = {
       id: discordUser.id,
       username: discordUser.username,
@@ -130,9 +134,16 @@ app.get('/auth/discord/callback', async (req, res) => {
     };
 
     req.session.userId = discordUser.id;
-    res.redirect('/');
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('[OAuth] session save failed:', saveErr);
+        return res.redirect('/?error=session_failed');
+      }
+      console.log('[OAuth] session saved OK, userId:', discordUser.id);
+      res.redirect('/');
+    });
   } catch (e) {
-    console.error('OAuth error:', e);
+    console.error('[OAuth] error:', e.message);
     res.redirect('/?error=auth_failed');
   }
 });
