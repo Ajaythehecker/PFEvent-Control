@@ -17,6 +17,17 @@ const BASE_URL              = process.env.BASE_URL || 'https://pfevent-control.o
 const REDIRECT_URI          = `${BASE_URL}/auth/discord/callback`;
 const SESSION_SECRET        = process.env.SESSION_SECRET || 'pfevent-super-secret-2025';
 const PORT                  = process.env.PORT || 3000;
+// ── SECURITY: Server-side XSS Protection ──────────────────
+function serverEsc(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[m]));
+}
 
 // ── Middleware ─────────────────────────────────────────────
 app.set('trust proxy', 1); // Render sits behind a proxy
@@ -285,35 +296,45 @@ io.on('connection', (socket) => {
 
   // ── Pilot: file flight plan (IFR/VFR) ───────────────────
   socket.on('flightplan:file', ({ roomId, plan }) => {
-    const room = getRoom(roomId);
-    if (!room || socketUser?.role !== 'pilot') return;
+    // 1. Check if the room exists using the helper function
+    const room = rooms[roomId]; 
+    
+    // 2. Access the user attached to this specific socket
+    const sUser = users[socket.id]; 
+
+    if (!room || !sUser || sUser.role !== 'pilot') {
+      console.log('[Error] Unauthorized or invalid room for flightplan');
+      return;
+    }
 
     const strip = {
       id: uuidv4(),
-      callsign: plan.callsign || socketUser.username.toUpperCase(),
-      actype: plan.actype || '---',
-      va: plan.va || '',
-      orig: (plan.orig || '----').toUpperCase(),
-      dest: (plan.dest || '----').toUpperCase(),
-      gate: (plan.gate || '').toUpperCase(),
-      fl: (plan.fl || '').toUpperCase(),
-      pilot: socketUser.username,
-      pilotId: socketUser.id,
-      remarks: plan.remarks || '',
+      // Clean the data using the helper we added above
+      callsign: serverEsc(plan.callsign) || sUser.username.toUpperCase(),
+      actype: serverEsc(plan.actype) || '---',
+      orig: serverEsc(plan.orig) || 'ZZZZ',
+      dest: serverEsc(plan.dest) || 'ZZZZ',
+      route: serverEsc(plan.route) || 'DIRECT',
+      remarks: serverEsc(plan.remarks) || '',
+      va: serverEsc(plan.va) || '',
+      fl: serverEsc(plan.fl) || '000',
       flightRules: plan.flightRules || 'IFR',
-      route: plan.route || '',
-      squawk: null,
-      sid: '',
-      star: '',
-      clearance: null,
-      pdcStatus: 'pending',
+      pilot: sUser.username,
+      pilotId: sUser.id,
       status: 'registered',
-      addedAt: Date.now(),
-      updatedAt: Date.now()
+      pdcStatus: 'none',
+      addedAt: Date.now()
     };
 
     room.strips.push(strip);
-    broadcastRoom(roomId);
+    
+    // Use your existing broadcast function
+    if (typeof broadcastRoom === 'function') {
+      broadcastRoom(roomId);
+    } else {
+      io.to(roomId).emit('room:update', room);
+    }
+  });
 
     // Notify ATCs
     io.to(roomId).emit('room:message', {
@@ -414,7 +435,6 @@ io.on('connection', (socket) => {
       broadcastRoom(currentRoom);
     }
   });
-});
 
 server.listen(PORT, () => {
   console.log(`PFEvent Control running on port ${PORT}`);

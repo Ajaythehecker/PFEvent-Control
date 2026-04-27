@@ -278,64 +278,61 @@ function buildStrip(f) {
 }
 
 // ── ATC: Strip detail ──────────────────────────────────────
+/* ── SECURITY: Escape helper to prevent XSS ── */
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/* ── ATC: Secure Strip Detail Panel ── */
 function openDetail(stripId) {
   const f = S.room?.strips.find(s => s.id === stripId);
   if (!f) return;
   S.activeStripId = stripId;
+  
+  // Safe because textContent doesn't execute HTML
   document.getElementById('d-cs-header').textContent = f.callsign;
 
   const body = document.getElementById('detail-body');
+  
+  // All user-provided fields are now wrapped in esc()
   body.innerHTML = `
-    <div class="detail-cs">${f.callsign}</div>
-    <div class="detail-sub">${f.orig} → ${f.dest} · ${f.flightRules} · ${utcTime(f.addedAt)}</div>
-    ${f.squawk ? `<div class="squawk-display">${f.squawk}</div>` : ''}
+    <div class="detail-cs">${esc(f.callsign)}</div>
+    <div class="detail-sub">${esc(f.orig)} → ${esc(f.dest)} · ${esc(f.flightRules)} · ${utcTime(f.addedAt)}</div>
+    ${f.squawk ? `<div class="squawk-display">${esc(f.squawk)}</div>` : ''}
     <div class="detail-grid">
-      <div class="detail-item"><label>Aircraft</label><span>${f.actype}</span></div>
-      <div class="detail-item"><label>VA</label><span>${f.va || '—'}</span></div>
-      <div class="detail-item"><label>Gate</label><span>${f.gate || '—'}</span></div>
-      <div class="detail-item"><label>FL</label><span>${f.fl || '—'}</span></div>
-      <div class="detail-item"><label>Pilot</label><span>${f.pilot}</span></div>
-      <div class="detail-item"><label>PDC</label><span style="text-transform:capitalize;color:${f.pdcStatus==='issued'?'#4ade80':f.pdcStatus==='pending'?'#fbbf24':'var(--text2)'}">${f.pdcStatus}</span></div>
-      ${f.sid ? `<div class="detail-item"><label>SID</label><span>${f.sid}</span></div>` : ''}
-      ${f.star ? `<div class="detail-item"><label>STAR</label><span>${f.star}</span></div>` : ''}
-      ${f.route ? `<div class="detail-item" style="grid-column:span 2"><label>Route</label><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${f.route}</span></div>` : ''}
+      <div class="detail-item"><label>Aircraft</label><span>${esc(f.actype)}</span></div>
+      <div class="detail-item"><label>VA</label><span>${esc(f.va || '—')}</span></div>
+      <div class="detail-item"><label>Gate</label><span>${esc(f.gate || '—')}</span></div>
+      <div class="detail-item"><label>FL</label><span>${esc(f.fl || '—')}</span></div>
+      <div class="detail-item"><label>Pilot</label><span>${esc(f.pilot)}</span></div>
+      <div class="detail-item"><label>PDC</label><span style="text-transform:capitalize;color:${f.pdcStatus==='issued'?'#4ade80':f.pdcStatus==='pending'?'#fbbf24':'var(--text2)'}">${esc(f.pdcStatus)}</span></div>
+      ${f.sid ? `<div class="detail-item"><label>SID</label><span>${esc(f.sid)}</span></div>` : ''}
+      ${f.star ? `<div class="detail-item"><label>STAR</label><span>${esc(f.star)}</span></div>` : ''}
+      ${f.route ? `<div class="detail-item" style="grid-column:span 2"><label>Route</label><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(f.route)}</span></div>` : ''}
     </div>
     ${f.pdcStatus === 'pending' ? `<div class="pdc-alert">⚠️ Pilot requesting PDC clearance</div><button class="btn-primary" style="margin-bottom:8px" onclick="openPDCPanel('${f.id}')">Issue PDC Clearance</button>` : ''}
     <div class="section-label">Move to status</div>
     <div class="status-btn-list">
       ${STATUSES.map(s => `
         <button class="status-btn ${f.status===s.key?'current':''}" onclick="moveStrip('${s.key}')">
-          <span class="s-dot-sm" style="background:${s.color}"></span>${s.label}
+          <span class="s-dot-sm" style="background:${s.color}"></span>${esc(s.label)}
         </button>`).join('')}
     </div>
     <div class="section-label">Squawk</div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
-      <input id="d-sq-input" class="mono" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px" maxlength="4" placeholder="0000" value="${f.squawk||''}">
+      <input id="d-sq-input" class="mono" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px" maxlength="4" placeholder="0000" value="${esc(f.squawk||'')}">
       <button onclick="assignSquawk()" style="padding:7px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Assign</button>
     </div>
     <button class="btn-danger" onclick="removeStrip()">Remove strip</button>
   `;
   openPanel('detail-panel');
-}
-
-function moveStrip(status) {
-  socket.emit('strip:update', { roomId: S.room.id, stripId: S.activeStripId, changes: { status } });
-  closePanel('detail-panel');
-  toast('atc-toast', `Moved to ${status}`);
-}
-
-function assignSquawk() {
-  const sq = document.getElementById('d-sq-input').value.trim();
-  if (!sq) return;
-  socket.emit('strip:update', { roomId: S.room.id, stripId: S.activeStripId, changes: { squawk: sq } });
-  toast('atc-toast', `Squawk ${sq} assigned`);
-}
-
-function removeStrip() {
-  socket.emit('strip:remove', { roomId: S.room.id, stripId: S.activeStripId });
-  closePanel('detail-panel');
-  toast('atc-toast', 'Strip removed');
-}
+} 
 
 // ── ATC: Add strip ─────────────────────────────────────────
 function addStrip() {
@@ -426,26 +423,35 @@ function renderATISBanner(atis) {
 }
 
 // ── PILOT ACARS ────────────────────────────────────────────
-// ── TERMINAL HELPERS ──────────────────────────────────────
+// ── SECURE TERMINAL HELPER ────────────────────────────────
 function termLine(msg, color='', source='[SYSTEM]', sourceClass='system') {
   const term = document.getElementById('acars-terminal');
   if (!term) return;
-  const now = new Date().toISOString().slice(11,16) + 'Z';
+  
+  const now = new Date().toISOString().slice(11, 16) + 'Z';
   const line = document.createElement('div');
   line.className = 'term-line';
-  line.innerHTML = `<span class="term-time">${now}</span><span class="term-source ${sourceClass}">${source}:</span><span class="term-msg ${color}">${msg}</span>`;
+
+  // Create individual elements to avoid .innerHTML
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'term-time';
+  timeSpan.textContent = now;
+
+  const sourceSpan = document.createElement('span');
+  sourceSpan.className = `term-source ${sourceClass}`;
+  sourceSpan.textContent = `${source}:`;
+
+  const msgSpan = document.createElement('span');
+  msgSpan.className = `term-msg ${color}`;
+  msgSpan.textContent = msg; // This kills the XSS
+
+  line.appendChild(timeSpan);
+  line.appendChild(sourceSpan);
+  line.appendChild(msgSpan);
+  
   term.appendChild(line);
   term.scrollTop = term.scrollHeight;
 }
-
-function launchPilotACARs(room) {
-  show('screen-pilot');
-  document.getElementById('pilot-room-code').textContent = room.id;
-  document.getElementById('pilot-event-name').textContent = room.eventName;
-  document.getElementById('acars-callsign-title').textContent = 'ACARS';
-  updatePilotStats(room);
-  if (room.atis) renderPilotATIS(room.atis);
-
   // Boot messages
   setTimeout(() => {
     termLine('DO NOT CLOSE THIS WINDOW. CONTROLLERS MAY SEND PRE DEPARTURE CLEARANCES THROUGH THE ACARS TERMINAL', 'red');
@@ -461,7 +467,7 @@ function launchPilotACARs(room) {
       });
     });
   });
-}
+  
 
 function updatePilotStats(room) {
   const el = document.getElementById('pilot-stat-conn');
