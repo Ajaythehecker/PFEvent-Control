@@ -265,27 +265,28 @@ io.on('connection', (socket) => {
   });
 
   // ── ATC: add strip manually ──────────────────────────────
+  // ── ATC: add strip manually ──────────────────────────────
   socket.on('strip:add', ({ roomId, strip }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'atc') return;
     const newStrip = {
       id: uuidv4(),
-      callsign: strip.callsign || '???',
-      actype: strip.actype || '---',
-      va: strip.va || '',
-      orig: strip.orig || '----',
-      dest: strip.dest || '----',
-      gate: strip.gate || '',
-      fl: strip.fl || '',
-      pilot: strip.pilot || 'Unknown',
+      callsign: serverEsc(strip.callsign) || '???',
+      actype: serverEsc(strip.actype) || '---',
+      va: serverEsc(strip.va) || '',
+      orig: serverEsc(strip.orig) || '----',
+      dest: serverEsc(strip.dest) || '----',
+      gate: serverEsc(strip.gate) || '',
+      fl: serverEsc(strip.fl) || '',
+      pilot: serverEsc(strip.pilot) || 'Unknown',
       pilotId: strip.pilotId || null,
-      remarks: strip.remarks || '',
+      remarks: serverEsc(strip.remarks) || '',
       flightRules: strip.flightRules || 'IFR',
       squawk: null,
-      sid: strip.sid || '',
-      star: strip.star || '',
+      sid: serverEsc(strip.sid) || '',
+      star: serverEsc(strip.star) || '',
       clearance: null,
-      pdcStatus: 'none',  // none | pending | issued
+      pdcStatus: 'none',
       status: 'registered',
       addedAt: Date.now(),
       updatedAt: Date.now()
@@ -296,21 +297,12 @@ io.on('connection', (socket) => {
 
   // ── Pilot: file flight plan (IFR/VFR) ───────────────────
   socket.on('flightplan:file', ({ roomId, plan }) => {
-    // 1. Check if the room exists using the helper function
-    const room = rooms[roomId]; 
-    
-    // 2. Access the user attached to this specific socket
-    const sUser = users[socket.id]; 
-
-    if (!room || !sUser || sUser.role !== 'pilot') {
-      console.log('[Error] Unauthorized or invalid room for flightplan');
-      return;
-    }
+    const room = getRoom(roomId); 
+    if (!room || !socketUser || socketUser.role !== 'pilot') return;
 
     const strip = {
       id: uuidv4(),
-      // Clean the data using the helper we added above
-      callsign: serverEsc(plan.callsign) || sUser.username.toUpperCase(),
+      callsign: serverEsc(plan.callsign) || socketUser.username.toUpperCase(),
       actype: serverEsc(plan.actype) || '---',
       orig: serverEsc(plan.orig) || 'ZZZZ',
       dest: serverEsc(plan.dest) || 'ZZZZ',
@@ -319,31 +311,24 @@ io.on('connection', (socket) => {
       va: serverEsc(plan.va) || '',
       fl: serverEsc(plan.fl) || '000',
       flightRules: plan.flightRules || 'IFR',
-      pilot: sUser.username,
-      pilotId: sUser.id,
+      pilot: socketUser.username,
+      pilotId: socketUser.id,
       status: 'registered',
       pdcStatus: 'none',
       addedAt: Date.now()
     };
 
     room.strips.push(strip);
-    
-    // Use your existing broadcast function
-    if (typeof broadcastRoom === 'function') {
-      broadcastRoom(roomId);
-    } else {
-      io.to(roomId).emit('room:update', room);
-    }
-  });
+    broadcastRoom(roomId);
 
-    // Notify ATCs
+    // Notify ATCs (Safe notifications)
     io.to(roomId).emit('room:message', {
-      text: `✈ ${socketUser.username} filed ${plan.flightRules} — ${strip.orig}→${strip.dest}`
+      text: `✈ ${socketUser.username} filed ${strip.flightRules} — ${strip.orig}→${strip.dest}`
     });
 
     // Send strip ID back to pilot so ACARS can track it
     socket.emit('flightplan:accepted', { stripId: strip.id });
-  });
+  }); // Only ONE closing brace here
 
   // ── Pilot: request PDC ───────────────────────────────────
   socket.on('pdc:request', ({ roomId, stripId }) => {
@@ -364,11 +349,12 @@ io.on('connection', (socket) => {
     const strip = room.strips.find(s => s.id === stripId);
     if (!strip) return;
 
-    strip.squawk = clearance.squawk || generateSquawk();
-    strip.sid = clearance.sid || '';
-    strip.star = clearance.star || '';
-    strip.fl = clearance.fl || strip.fl;
-    strip.remarks = clearance.remarks || strip.remarks;
+    strip.squawk = serverEsc(clearance.squawk) || (typeof generateSquawk === 'function' ? generateSquawk() : '1234');
+    strip.sid = serverEsc(clearance.sid) || '';
+    strip.star = serverEsc(clearance.star) || '';
+    strip.fl = serverEsc(clearance.fl) || strip.fl;
+    strip.remarks = serverEsc(clearance.remarks) || strip.remarks;
+    
     strip.clearance = {
       ...clearance,
       squawk: strip.squawk,
@@ -379,20 +365,31 @@ io.on('connection', (socket) => {
     strip.updatedAt = Date.now();
     broadcastRoom(roomId);
 
-    // Push clearance directly to the pilot's socket
     io.to(roomId).emit(`pdc:clearance:${strip.pilotId}`, { strip });
     io.to(roomId).emit('room:message', {
       text: `✅ PDC issued to ${strip.pilot} — Squawk ${strip.squawk}`
     });
   });
-
   // ── ATC: update strip status / squawk ───────────────────
+// ── ATC: update strip status / squawk ───────────────────
   socket.on('strip:update', ({ roomId, stripId, changes }) => {
     const room = getRoom(roomId);
-    if (!room || socketUser?.role !== 'atc') return;
+    
+    // Security check: only ATCs can update strips
+    if (!room || !socketUser || socketUser.role !== 'atc') return;
+
     const strip = room.strips.find(s => s.id === stripId);
     if (!strip) return;
+
+    // ── XSS PROTECTION: Sanitize text inputs in changes ──
+    if (changes.squawk) changes.squawk = serverEsc(changes.squawk);
+    if (changes.remarks) changes.remarks = serverEsc(changes.remarks);
+    if (changes.sid) changes.sid = serverEsc(changes.sid);
+
+    // Apply the changes to the strip
     Object.assign(strip, changes, { updatedAt: Date.now() });
+
+    // Tell everyone in the room to refresh their boards
     broadcastRoom(roomId);
   });
 
@@ -428,6 +425,7 @@ io.on('connection', (socket) => {
     socket.emit('atc:rated', { ok: true });
   });
 
+  // ── Connection Disconnect ────────────────────────────────
   socket.on('disconnect', () => {
     if (currentRoom && rooms[currentRoom]) {
       const size = io.sockets.adapter.rooms.get(currentRoom)?.size || 0;
@@ -436,6 +434,9 @@ io.on('connection', (socket) => {
     }
   });
 
+}); // <--- THIS BRACE CLOSES THE io.on('connection') BLOCK
+
+// ── Start Server ───────────────────────────────────────────
 server.listen(PORT, () => {
   console.log(`PFEvent Control running on port ${PORT}`);
 });
