@@ -59,11 +59,17 @@ if (document.readyState === 'loading') {
 
 // ── Screen helpers ─────────────────────────────────────────
 function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+  // Hide ALL screens first
+  ['screen-login','screen-role','screen-home','screen-atc','screen-pilot'].forEach(sid => {
+    const s = document.getElementById(sid);
+    if (s) s.style.display = 'none';
+  });
   const el = document.getElementById(id);
-  // Use flex for screens that need it, block for others
+  if (!el) return;
   if (id === 'screen-atc') {
-    el.style.display = 'flex';
+    el.style.cssText = 'display:flex !important; flex-direction:column; height:100vh; overflow:hidden;';
+  } else if (id === 'screen-pilot') {
+    el.style.cssText = 'display:block !important; height:100vh; overflow:hidden;';
   } else {
     el.style.display = 'block';
   }
