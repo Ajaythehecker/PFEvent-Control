@@ -434,6 +434,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Chat Broadcast ──────────────────────────────────────
+  socket.on('chat:send', ({ roomId, message }) => {
+    const room = getRoom(roomId);
+    if (!room || !socketUser) return;
+
+    const payload = {
+      userId: socketUser.id,
+      username: socketUser.username,
+      role: socketUser.role,
+      message: serverEsc(message), // Clean it on the server!
+      ts: Date.now()
+    };
+
+    io.to(roomId).emit('chat:receive', payload);
+  });
+
+  // ── Voice Link Sync ─────────────────────────────────────
+  socket.on('voice:set', ({ roomId, url }) => {
+    const room = getRoom(roomId);
+    if (!room || !socketUser) return;
+    
+    room.voiceUrl = url;
+    io.to(roomId).emit('voice:update', url);
+    io.to(roomId).emit('room:message', { text: `🎙 Voice channel updated by ${socketUser.username}` });
+  });
+  
 }); // <--- THIS BRACE CLOSES THE io.on('connection') BLOCK
 
 // ── Start Server ───────────────────────────────────────────

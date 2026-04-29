@@ -697,3 +697,95 @@ document.addEventListener('keydown', e => {
     setTimeout(() => document.getElementById('a-cs')?.focus(), 50);
   }
 });
+/* ── MACH 2: Chat & Voice Logic ── */
+
+function toggleChat() {
+  const p = document.getElementById('atc-chat-panel');
+  if (p) {
+    p.classList.toggle('open');
+    // Clear notification when opened
+    document.querySelectorAll('.btn-chat').forEach(b => b.classList.remove('unread'));
+  }
+}
+
+function togglePilotChat() {
+  const p = document.getElementById('pilot-chat-panel');
+  if (p) {
+    p.classList.toggle('open');
+    // Clear notification when opened
+    document.querySelectorAll('.btn-chat').forEach(b => b.classList.remove('unread'));
+  }
+}
+
+function sendChat(role) {
+  const input = document.getElementById(`${role}-chat-input`);
+  const msg = input.value.trim();
+  if (!msg || !S.room) return;
+
+  socket.emit('chat:send', { roomId: S.room.id, message: msg });
+  input.value = '';
+}
+
+// Receive and render chats
+socket.on('chat:receive', (data) => {
+  const roles = ['atc', 'pilot'];
+  
+  roles.forEach(r => {
+    const container = document.getElementById(`${r}-chat-messages`);
+    const panel = document.getElementById(`${r}-chat-panel`);
+    // Select the button based on the specific role layout
+    const btn = r === 'atc' ? document.querySelector('.btn-chat') : document.querySelector('.term-header-right .btn-chat');
+
+    if (!container) return;
+
+    const isMine = data.userId === S.user?.id;
+    const div = document.createElement('div');
+    div.className = `chat-msg ${isMine ? 'mine' : ''}`;
+    
+    // Secure rendering using your esc() helper
+    div.innerHTML = `
+      <div class="chat-meta">
+        <span class="chat-name">${esc(data.username)}</span>
+        <span class="chat-role ${data.role}">${data.role.toUpperCase()}</span>
+      </div>
+      <div class="chat-bubble">${esc(data.message)}</div>
+    `;
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+
+    // Notification polish: add 'unread' class if panel is closed
+    if (panel && !panel.classList.contains('open') && !isMine) {
+      btn?.classList.add('unread');
+    }
+  });
+}); // Properly closed the chat:receive listener
+
+/* ── MACH 2: Voice Link Logic ── */
+
+function promptVoiceLink(role) {
+  openModal('voice-modal');
+}
+
+function setVoiceLink() {
+  const url = document.getElementById('voice-link-input').value.trim();
+  if (!url.includes('discord')) {
+    alert('Please provide a valid Discord link.');
+    return;
+  }
+  socket.emit('voice:set', { roomId: S.room.id, url });
+  closeModal('voice-modal');
+}
+
+socket.on('voice:update', (url) => {
+  const display = document.getElementById('voice-link-display');
+  const anchor = document.getElementById('voice-link-anchor');
+  
+  if (url) {
+    if (display) display.style.display = 'block';
+    if (anchor) anchor.href = url;
+    // Highlight the mic buttons
+    document.getElementById('atc-voice-btn')?.classList.add('active');
+    document.getElementById('pilot-voice-btn')?.classList.add('active');
+  }
+});
