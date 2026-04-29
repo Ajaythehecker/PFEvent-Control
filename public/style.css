@@ -127,7 +127,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .atis-raw{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6}
 
 /* COLUMNS */
-.board-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);flex:1;min-height:0;overflow:hidden}
+.board-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);height:calc(100vh - var(--nav-h) - 1px);overflow:hidden}
 .board-columns.with-atis{height:calc(100vh - var(--nav-h) - 60px)}
 .column{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
 .col-header{display:flex;align-items:center;gap:7px;padding:0 12px;height:40px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;font-weight:600}
@@ -340,7 +340,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-clamp: 2;
   overflow: hidden;
 }
 .alp-empty {
@@ -670,67 +669,53 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
   white-space: nowrap;
 }
 
-/* ── CONTRAST RESTORATION ── */
-/* If the 'new' version looked grey/washed out, force the background back to pitch black */
-.screen {
-  background-color: var(--bg) !important;
-}
+/* board-nav bg */
+.board-nav { background: var(--bg); }
+/* ── SCREEN LAYOUTS ── */
+#screen-login, #screen-role, #screen-home { display: none; min-height: 100vh; }
+#screen-atc { display: none; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
+#screen-pilot { display: none; height: 100vh; overflow: hidden; background: var(--bg); }
 
-.board-nav {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-}
+/* When shown by JS */
+#screen-atc.active { display: flex !important; }
+#screen-pilot.active { display: block !important; }
+#screen-login.active, #screen-role.active, #screen-home.active { display: block !important; }
 
-
-
-
-/* ── CLEAN LAYOUT RULES ── */
-#screen-atc {
-  display: flex !important;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
+/* ATC columns fill remaining height */
 #screen-atc .board-columns {
   flex: 1;
   min-height: 0;
-  height: auto;
+  height: auto !important;
 }
 #screen-atc .column {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
 }
 #screen-atc .col-strips {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
-#screen-pilot {
-  display: block !important;
-  height: 100vh;
-  overflow: hidden;
-}
+
+/* Pilot ACARS fills height */
 #screen-pilot .acars-wrapper {
   display: grid;
   grid-template-columns: 280px 1fr 260px;
   height: 100vh;
   overflow: hidden;
 }
-#screen-pilot .acars-left-panel,
-#screen-pilot .acars-right-panel {
-  height: 100vh;
-  overflow-y: auto;
-}
 #screen-pilot .acars-terminal-wrap {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   min-height: 0;
 }
 #screen-pilot .acars-terminal {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+}
+#screen-pilot .acars-left-panel,
+#screen-pilot .acars-right-panel {
   overflow-y: auto;
 }

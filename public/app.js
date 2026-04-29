@@ -59,20 +59,14 @@ if (document.readyState === 'loading') {
 
 // ── Screen helpers ─────────────────────────────────────────
 function show(id) {
-  // Hide ALL screens first
   ['screen-login','screen-role','screen-home','screen-atc','screen-pilot'].forEach(sid => {
     const s = document.getElementById(sid);
-    if (s) s.style.display = 'none';
+    if (s) { s.classList.remove('active'); s.style.display = 'none'; }
   });
   const el = document.getElementById(id);
   if (!el) return;
-  if (id === 'screen-atc') {
-    el.style.cssText = 'display:flex !important; flex-direction:column; height:100vh; overflow:hidden;';
-  } else if (id === 'screen-pilot') {
-    el.style.cssText = 'display:block !important; height:100vh; overflow:hidden;';
-  } else {
-    el.style.display = 'block';
-  }
+  el.style.display = '';
+  el.classList.add('active');
 }
 
 function renderNavUser(elId) {
@@ -255,16 +249,6 @@ function launchPilotACARs(room) {
   // If the room has an airport, show it in the ACARS header
   const airportEl = document.getElementById('pilot-event-airport');
   if (airportEl) airportEl.textContent = room.airport || '---';
-
-  // Init star listeners
-  document.querySelectorAll('.star').forEach(star => {
-    star.addEventListener('click', () => {
-      S.starRating = parseInt(star.dataset.v);
-      document.querySelectorAll('.star').forEach(s => {
-        s.classList.toggle('active', parseInt(s.dataset.v) <= S.starRating);
-      });
-    });
-  });
 }
 // ── ATC BOARD ──────────────────────────────────────────────
 function launchATCBoard(room) {
@@ -397,27 +381,6 @@ function openDetail(stripId) {
   openPanel('detail-panel');
 } 
 
-
-// ── ATC: Strip actions ─────────────────────────────────────
-function moveStrip(status) {
-  socket.emit('strip:update', { roomId: S.room.id, stripId: S.activeStripId, changes: { status } });
-  closePanel('detail-panel');
-  toast('atc-toast', 'Moved to ' + status);
-}
-
-function assignSquawk() {
-  const sq = document.getElementById('d-sq-input').value.trim();
-  if (!sq) return;
-  socket.emit('strip:update', { roomId: S.room.id, stripId: S.activeStripId, changes: { squawk: sq } });
-  toast('atc-toast', 'Squawk ' + sq + ' assigned');
-}
-
-function removeStrip() {
-  socket.emit('strip:remove', { roomId: S.room.id, stripId: S.activeStripId });
-  closePanel('detail-panel');
-  toast('atc-toast', 'Strip removed');
-}
-
 // ── ATC: Add strip ─────────────────────────────────────────
 function addStrip() {
   const cs = document.getElementById('a-cs').value.trim().toUpperCase();
@@ -536,7 +499,16 @@ function termLine(msg, color='', source='[SYSTEM]', sourceClass='system') {
   term.appendChild(line);
   term.scrollTop = term.scrollHeight;
 }
-
+  // Init star listeners
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', () => {
+      S.starRating = parseInt(star.dataset.v);
+      document.querySelectorAll('.star').forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.v) <= S.starRating);
+      });
+    });
+  });
+  
 
 function updatePilotStats(room) {
   const el = document.getElementById('pilot-stat-conn');
