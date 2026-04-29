@@ -60,7 +60,13 @@ if (document.readyState === 'loading') {
 // ── Screen helpers ─────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-  document.getElementById(id).style.display = '';
+  const el = document.getElementById(id);
+  // Use flex for screens that need it, block for others
+  if (id === 'screen-atc') {
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'block';
+  }
 }
 
 function renderNavUser(elId) {
