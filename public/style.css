@@ -24,7 +24,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .btn-ghost:hover{background:var(--bg3);color:var(--text)}
 
 /* HERO */
-.screen{min-height:100vh}
+.screen{height:100vh;overflow:hidden}
 .hero{display:flex;align-items:center;justify-content:center;gap:70px;min-height:100vh;padding:80px 40px 40px}
 .hero-content{max-width:480px}
 .hero-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
@@ -127,7 +127,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .atis-raw{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6}
 
 /* COLUMNS */
-.board-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);height:calc(100vh - var(--nav-h) - 1px);overflow:hidden}
+.board-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);flex:1;min-height:0;overflow:hidden}
 .board-columns.with-atis{height:calc(100vh - var(--nav-h) - 60px)}
 .column{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
 .col-header{display:flex;align-items:center;gap:7px;padding:0 12px;height:40px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;font-weight:600}
@@ -680,56 +680,57 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
 }
-/* ── LAYOUT FIX: ATC board fills full height ── */
+
+
+
+
+/* ── CLEAN LAYOUT RULES ── */
 #screen-atc {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
-
-.board-columns {
-  flex: 1 !important;
-  height: auto !important;
+#screen-atc .board-columns {
+  flex: 1;
   min-height: 0;
+  height: auto;
 }
-
-.column {
-  min-height: 0;
-}
-
-.col-strips {
-  min-height: 0;
-}
-
-/* ── LAYOUT FIX: Pilot ACARS fills full height ── */
-#screen-pilot {
-  display: block;
-  height: 100vh;
-  overflow: hidden;
-}
-
-#screen-pilot .acars-wrapper {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 280px 1fr 260px;
-}
-
-#screen-pilot .acars-terminal-wrap {
+#screen-atc .column {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100vh;
+  overflow: hidden;
 }
-
-#screen-pilot .acars-terminal {
+#screen-atc .col-strips {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
-
+#screen-pilot {
+  display: block !important;
+  height: 100vh;
+  overflow: hidden;
+}
+#screen-pilot .acars-wrapper {
+  display: grid;
+  grid-template-columns: 280px 1fr 260px;
+  height: 100vh;
+  overflow: hidden;
+}
 #screen-pilot .acars-left-panel,
 #screen-pilot .acars-right-panel {
   height: 100vh;
+  overflow-y: auto;
+}
+#screen-pilot .acars-terminal-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+#screen-pilot .acars-terminal {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
