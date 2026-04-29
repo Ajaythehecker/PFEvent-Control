@@ -11,8 +11,8 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 // ── Config ─────────────────────────────────────────────────
-const DISCORD_CLIENT_ID     = process.env.DISCORD_CLIENT_ID;
-const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const DISCORD_CLIENT_ID     = process.env.DISCORD_CLIENT_ID     || '1498034089545044049';
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '790Oz-Q_ZhPzhYZsopAFwdGskvosz4ag';
 const BASE_URL              = process.env.BASE_URL || 'https://pfevent-control.onrender.com';
 const REDIRECT_URI          = `${BASE_URL}/auth/discord/callback`;
 const SESSION_SECRET        = process.env.SESSION_SECRET || 'pfevent-super-secret-2025';
