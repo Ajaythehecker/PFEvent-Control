@@ -521,22 +521,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .star { color: var(--text3); cursor: pointer; transition: color .1s; }
 .star.active { color: #fbbf24; }
 
-/* ── CHAT PANEL SLIDE SYSTEM ── */
-.chat-panel {
-  position: fixed;
-  right: -350px; /* Starts off-screen */
-  top: 0;
-  width: 320px;
-  height: 100%;
-  background: var(--bg2);
-  border-left: 1px solid var(--border);
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-}
-
 .chat-panel.open {
   right: 0; /* Slides in when 'open' class is added */
 }

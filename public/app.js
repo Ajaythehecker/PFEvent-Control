@@ -162,6 +162,11 @@ function joinRoom() {
 
 function joinRoomSocket(roomId) {
   socket.emit('room:join', { roomId, userId: S.user.id });
+  // Setup targeted clearance listener
+  socket.off(`pdc:clearance:${S.user.id}`);
+  socket.on(`pdc:clearance:${S.user.id}`, ({ strip }) => {
+    showClearance(strip);
+  });
 }
 
 // ── Socket: joined ─────────────────────────────────────────
@@ -198,16 +203,36 @@ socket.on('room:message', ({ text }) => {
 // ── PILOT ACARS BOARD ──────────────────────────────────────
 function launchPilotACARs(room) {
   show('screen-pilot'); // Switches the UI to the Pilot screen
+  clearanceShown = false; // Reset for fresh join
+  
   const titleEl = document.getElementById('acars-callsign-title');
   if (titleEl) titleEl.textContent = 'ACARS TERMINAL';
   
-  // Initialize ACARS bars
+  // Restore state if pilot already has a strip in this room
+  const myStrip = room.strips.find(s => s.pilotId === S.user.id);
   const preflightBar = document.getElementById('acars-preflight-bar');
   const pdcBar = document.getElementById('acars-pdc-bar');
   const postBar = document.getElementById('acars-post-bar');
-  if (preflightBar) preflightBar.style.display = 'flex';
-  if (pdcBar) pdcBar.style.display = 'none';
-  if (postBar) postBar.style.display = 'none';
+
+  if (myStrip) {
+    S.myStripId = myStrip.id;
+    if (titleEl) titleEl.textContent = myStrip.callsign + ' ACARS';
+    renderFlightNotes(myStrip);
+    
+    if (myStrip.pdcStatus === 'issued') {
+      if (preflightBar) preflightBar.style.display = 'none';
+      if (pdcBar) pdcBar.style.display = 'none';
+      if (postBar) postBar.style.display = 'flex';
+      showClearance(myStrip);
+    } else if (myStrip.pdcStatus === 'pending') {
+      if (preflightBar) preflightBar.style.display = 'none';
+      if (pdcBar) pdcBar.style.display = 'flex';
+    }
+  } else {
+    if (preflightBar) preflightBar.style.display = 'flex';
+    if (pdcBar) pdcBar.style.display = 'none';
+    if (postBar) postBar.style.display = 'none';
+  }
 
   updatePilotStats(room); // Renders controllers and ATIS
 
