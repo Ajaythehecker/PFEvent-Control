@@ -520,3 +520,85 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .star-row { display: flex; gap: 6px; font-size: 28px; }
 .star { color: var(--text3); cursor: pointer; transition: color .1s; }
 .star.active { color: #fbbf24; }
+
+/* ── CHAT PANEL SLIDE SYSTEM ── */
+.chat-panel {
+  position: fixed;
+  right: -350px; /* Starts off-screen */
+  top: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+}
+
+.chat-panel.open {
+  right: 0; /* Slides in when 'open' class is added */
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-bubble {
+  background: var(--bg3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.chat-msg.mine .chat-bubble {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+/* Notification Glow for the Chat Button */
+.btn-chat.unread {
+  border-color: var(--red) !important;
+  color: var(--red) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+  animation: chat-pulse 1.5s infinite;
+}
+
+@keyframes chat-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.chat-panel {
+  position: fixed;
+  right: -350px;
+  top: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  transition: right 0.3s ease;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-panel.open {
+  right: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

@@ -113,13 +113,16 @@
       <span class="board-room-code" id="atc-room-code"></span>
     </div>
     <div class="board-nav-right">
-      <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
-      <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-pdc-count">0</span> PDC pending</div>
-      <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
-      <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
-      <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
-    </div>
-  </div>
+  <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
+  <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-stat-count">0</span> PDC pending</div>
+  <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
+  
+<button class="nav-btn btn-voice" id="atc-voice-btn" onclick="promptVoiceLink('atc')">🎤 Voice</button>
+<button class="nav-btn btn-chat" onclick="toggleChat()">💬 Chat</button>
+  
+  <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
+  <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
+</div>
 
   <!-- ATIS banner -->
   <div class="atis-banner" id="atis-banner" style="display:none">
@@ -231,6 +234,12 @@
         <button class="back-btn" onclick="goHome()">← Back</button>
         <span class="alp-event" id="pilot-event-name"></span>
       </div>
+      <div id="voice-link-display" style="display:none; margin-bottom:15px;">
+  <div class="alp-section-title">🎤 Voice Channel</div>
+  <a id="voice-link-anchor" href="#" target="_blank" class="btn-voice" style="display:block; text-align:center; text-decoration:none; background: #5865F2; color:white; padding:8px; border-radius:4px; font-weight:bold;">
+    JOIN DISCORD
+  </a>
+</div>
 
       <div class="alp-section-title">Controllers</div>
       <div class="controllers-list" id="controllers-list">
@@ -253,6 +262,8 @@
         <div class="term-header-right">
           <span class="board-room-code" id="pilot-room-code"></span>
           <div class="stat-pill live"><span class="live-dot"></span><span id="pilot-stat-conn">0</span> online</div>
+
+          <button class="nav-btn btn-chat" onclick="togglePilotChat()">💬 Chat</button>
         </div>
       </div>
 
@@ -338,11 +349,54 @@
       </div>
     </div>
   </div>
+<div id="voice-link-display" style="display:none; padding: 15px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+  <div style="font-size: 10px; color: var(--text2); text-transform: uppercase; margin-bottom: 5px;">🎤 Voice Channel</div>
+  <a id="voice-link-anchor" href="#" target="_blank" style="display:block; text-align:center; background: #5865F2; color:white; padding:10px; border-radius:6px; text-decoration:none; font-weight:bold;">JOIN DISCORD</a>
+</div>
+
+<div id="pilot-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="togglePilotChat()">✕</button></div>
+  <div id="pilot-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="pilot-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:8px; border-radius:4px;">
+    <button onclick="sendChat('pilot')" style="background:var(--accent); color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">Send</button>
+  </div>
+</div>
 
   <div class="toast" id="pilot-toast"></div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/app.js"></script>
+
+<div id="atc-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="toggleChat()">✕</button></div>
+  <div id="atc-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="atc-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:5px 10px; border-radius:4px;">
+    <button onclick="sendChat('atc')" style="background:var(--accent); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Send</button>
+  </div>
+</div>
+<div id="pilot-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="togglePilotChat()">✕</button></div>
+  <div id="pilot-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="pilot-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:5px 10px; border-radius:4px;">
+    <button onclick="sendChat('pilot')" style="background:var(--accent); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Send</button>
+  </div>
+</div>
+
+<div id="voice-modal" class="modal-backdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('voice-modal')">✕</button>
+    <h3 class="modal-title">Set Discord Voice Link</h3>
+    <div class="field">
+      <label>Discord Channel URL</label>
+      <input type="text" id="voice-link-input" class="mono" placeholder="https://discord.gg/...">
+    </div>
+    <button class="btn-primary" onclick="setVoiceLink()">Update Link for Pilots</button>
+  </div>
+</div>
+
 </body>
 </html>
