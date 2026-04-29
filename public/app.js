@@ -185,13 +185,6 @@ socket.on('room:update', (room) => {
   } else {
     updatePilotStats(room);
     if (room.atis) renderPilotATIS(room.atis);
-    // Check if my strip got a PDC
-    if (S.myStripId) {
-      const strip = room.strips.find(s => s.id === S.myStripId);
-      if (strip?.pdcStatus === 'issued' && strip.clearance) {
-        showClearance(strip);
-      }
-    }
   }
 });
 
@@ -208,7 +201,19 @@ function launchPilotACARs(room) {
   const titleEl = document.getElementById('acars-callsign-title');
   if (titleEl) titleEl.textContent = 'ACARS TERMINAL';
   
+  // Initialize ACARS bars
+  const preflightBar = document.getElementById('acars-preflight-bar');
+  const pdcBar = document.getElementById('acars-pdc-bar');
+  const postBar = document.getElementById('acars-post-bar');
+  if (preflightBar) preflightBar.style.display = 'flex';
+  if (pdcBar) pdcBar.style.display = 'none';
+  if (postBar) postBar.style.display = 'none';
+
   updatePilotStats(room); // Renders controllers and ATIS
+
+  // Print system boot messages
+  termLine('DO NOT CLOSE THIS WINDOW. CONTROLLERS MAY SEND PRE DEPARTURE CLEARANCES THROUGH THE ACARS TERMINAL', 'red');
+  termLine('System ready. File a flight plan to begin.', 'dim');
   
   // If the room has an airport, show it in the ACARS header
   const airportEl = document.getElementById('pilot-event-airport');
@@ -463,12 +468,6 @@ function termLine(msg, color='', source='[SYSTEM]', sourceClass='system') {
   term.appendChild(line);
   term.scrollTop = term.scrollHeight;
 }
-  // Boot messages
-  setTimeout(() => {
-    termLine('DO NOT CLOSE THIS WINDOW. CONTROLLERS MAY SEND PRE DEPARTURE CLEARANCES THROUGH THE ACARS TERMINAL', 'red');
-    termLine('System ready. File a flight plan to begin.', 'dim');
-  }, 300);
-
   // Init star listeners
   document.querySelectorAll('.star').forEach(star => {
     star.addEventListener('click', () => {
@@ -495,7 +494,7 @@ function renderControllers(room) {
   if (room.airport) {
     el.innerHTML = `
       <div class="controller-item">
-        <span class="ctrl-airport">${room.airport}</span>
+        <span class="ctrl-airport">${esc(room.airport)}</span>
         <img class="ctrl-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
         <div class="ctrl-info">
           <div class="ctrl-name">Event ATC</div>
@@ -512,8 +511,8 @@ function renderPilotATIS(atis) {
   if (!list) return;
   list.innerHTML = `
     <div class="atis-item">
-      <div class="atis-airport">${S.room?.airport || 'EVENT'} ATIS ${atis.letter}</div>
-      <div class="atis-text">${atis.raw}</div>
+      <div class="atis-airport">${esc(S.room?.airport) || 'EVENT'} ATIS ${esc(atis.letter)}</div>
+      <div class="atis-text">${esc(atis.raw)}</div>
     </div>`;
 }
 
@@ -603,16 +602,6 @@ function requestPDC() {
 
 socket.on('flightplan:accepted', ({ stripId }) => {
   S.myStripId = stripId;
-});
-
-// Listen for clearance
-socket.on('room:update', (room) => {
-  if (S.myStripId && S.user.role === 'pilot') {
-    const strip = room.strips.find(s => s.id === S.myStripId);
-    if (strip?.pdcStatus === 'issued' && strip.clearance) {
-      showClearance(strip);
-    }
-  }
 });
 
 let clearanceShown = false;
