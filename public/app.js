@@ -202,7 +202,18 @@ socket.on('room:message', ({ text }) => {
     addPilotMessage(text);
   }
 });
-
+// ── PILOT ACARS BOARD ──────────────────────────────────────
+function launchPilotACARs(room) {
+  show('screen-pilot'); // Switches the UI to the Pilot screen
+  const titleEl = document.getElementById('acars-callsign-title');
+  if (titleEl) titleEl.textContent = 'ACARS TERMINAL';
+  
+  updatePilotStats(room); // Renders controllers and ATIS
+  
+  // If the room has an airport, show it in the ACARS header
+  const airportEl = document.getElementById('pilot-event-airport');
+  if (airportEl) airportEl.textContent = room.airport || '---';
+}
 // ── ATC BOARD ──────────────────────────────────────────────
 function launchATCBoard(room) {
   show('screen-atc');
