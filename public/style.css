@@ -602,3 +602,45 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
   flex-direction: column;
   gap: 10px;
 }
+/* ── NAV HEADER FIXES ── */
+.board-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 24px; /* Creates breathing room between stats and buttons */
+}
+
+.nav-stats-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* Ensure the pills don't shrink when buttons are added */
+.stat-pill {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── CONTRAST RESTORATION ── */
+/* If the 'new' version looked grey/washed out, force the background back to pitch black */
+.screen {
+  background-color: var(--bg) !important;
+}
+
+.board-nav {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}

@@ -112,17 +112,22 @@
       <span class="board-event-name" id="atc-event-name"></span>
       <span class="board-room-code" id="atc-room-code"></span>
     </div>
-    <div class="board-nav-right">
-  <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
-  <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-stat-count">0</span> PDC pending</div>
-  <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
-  
-<button class="nav-btn btn-voice" id="atc-voice-btn" onclick="promptVoiceLink('atc')">🎤 Voice</button>
-<button class="nav-btn btn-chat" onclick="toggleChat()">💬 Chat</button>
-  
-  <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
-  <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
+<div class="board-nav-right">
+  <div class="nav-stats-group">
+    <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
+    <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-pdc-count">0</span> PDC pending</div>
+    <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
+  </div>
+
+  <div class="nav-actions-group">
+    <button class="nav-btn btn-voice" id="atc-voice-btn" onclick="promptVoiceLink('atc')">🎤 Voice</button>
+    <button class="nav-btn btn-chat" onclick="toggleChat()">💬 Chat</button>
+    <div class="nav-divider"></div>
+    <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
+    <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
+  </div>
 </div>
+
 
   <!-- ATIS banner -->
   <div class="atis-banner" id="atis-banner" style="display:none">
