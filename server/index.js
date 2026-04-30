@@ -10,68 +10,41 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// ── Config ─────────────────────────────────────────────────
-const DISCORD_CLIENT_ID     = process.env.DISCORD_CLIENT_ID     || '1498034089545044049';
-const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '790Oz-Q_ZhPzhYZsopAFwdGskvosz4ag';
+const DISCORD_CLIENT_ID     = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const BASE_URL              = process.env.BASE_URL || 'https://pfevent-control.onrender.com';
 const REDIRECT_URI          = `${BASE_URL}/auth/discord/callback`;
 const SESSION_SECRET        = process.env.SESSION_SECRET || 'pfevent-super-secret-2025';
 const PORT                  = process.env.PORT || 3000;
-// ── SECURITY: Server-side XSS Protection ──────────────────
+
 function serverEsc(str) {
   if (typeof str !== 'string') return str;
-  return str.replace(/[&<>"']/g, m => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }[m]));
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
-// ── Middleware ─────────────────────────────────────────────
-app.set('trust proxy', 1); // Render sits behind a proxy
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    secure: true,       // HTTPS on Render
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
-  }
+  cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
 }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ── In-memory store ────────────────────────────────────────
-// rooms[id] = { id, eventName, airport, strips[], connectedCount, createdAt }
 const rooms = {};
-
-// users[discordId] = { id, username, avatar, discriminator, role, ratings[] }
 const users = {};
 
 function getRoom(id) { return rooms[id] || null; }
 
 function broadcastRoom(roomId) {
   const room = getRoom(roomId);
-  if (room) io.to(roomId).emit('room:update', sanitizeRoom(room));
-}
-
-function sanitizeRoom(room) {
-  return {
-    ...room,
-    strips: room.strips.map(s => ({
-      ...s,
-      // include full data — ATC and pilot see different things in frontend
-    }))
-  };
+  if (room) io.to(roomId).emit('room:update', room);
 }
 
 function generateSquawk() {
-  // Generate a valid squawk (0000-7777, octal digits only)
-  const digits = () => Math.floor(Math.random() * 8);
-  return `${digits()}${digits()}${digits()}${digits()}`;
+  const d = () => Math.floor(Math.random() * 8);
+  return `${d()}${d()}${d()}${d()}`;
 }
 
 function generateATIS(airport, info) {
@@ -92,7 +65,7 @@ function generateATIS(airport, info) {
   };
 }
 
-// ── Auth: Discord OAuth ────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────
 app.get('/auth/discord', (req, res) => {
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
@@ -105,10 +78,8 @@ app.get('/auth/discord', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
   const { code, error } = req.query;
-  console.log('[OAuth] callback hit, code:', code ? 'YES' : 'NO', 'error:', error);
   if (error) return res.redirect('/?error=' + error);
   if (!code) return res.redirect('/?error=no_code');
-
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -122,17 +93,12 @@ app.get('/auth/discord/callback', async (req, res) => {
       })
     });
     const tokenData = await tokenRes.json();
-    console.log('[OAuth] token keys:', Object.keys(tokenData));
-    if (!tokenData.access_token) {
-      console.error('[OAuth] no access_token:', JSON.stringify(tokenData));
-      throw new Error('No access token');
-    }
+    if (!tokenData.access_token) throw new Error('No access token');
 
     const userRes = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
     const discordUser = await userRes.json();
-    console.log('[OAuth] user:', discordUser.id, discordUser.username);
 
     users[discordUser.id] = {
       id: discordUser.id,
@@ -145,13 +111,9 @@ app.get('/auth/discord/callback', async (req, res) => {
     };
 
     req.session.userId = discordUser.id;
-    req.session.userData = users[discordUser.id]; // persist in session for restart resilience
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error('[OAuth] session save failed:', saveErr);
-        return res.redirect('/?error=session_failed');
-      }
-      console.log('[OAuth] session saved OK, userId:', discordUser.id);
+    req.session.userData = users[discordUser.id];
+    req.session.save((err) => {
+      if (err) return res.redirect('/?error=session_failed');
       res.redirect('/');
     });
   } catch (e) {
@@ -165,11 +127,8 @@ app.get('/auth/logout', (req, res) => {
   res.redirect('/');
 });
 
-// ── API: current user ──────────────────────────────────────
-// Helper: get user from memory OR session (survives restarts)
 function getUser(req) {
   if (!req.session.userId) return null;
-  // Restore from session if memory was wiped (e.g. Render restart)
   if (!users[req.session.userId] && req.session.userData) {
     users[req.session.userId] = req.session.userData;
   }
@@ -178,7 +137,6 @@ function getUser(req) {
 
 app.get('/api/me', (req, res) => {
   const user = getUser(req);
-  console.log('[/api/me] sessionId:', req.session.id, 'userId:', req.session.userId, 'user:', user?.username || 'null');
   if (!user) return res.json({ user: null });
   res.json({ user });
 });
@@ -189,28 +147,22 @@ app.post('/api/me/role', (req, res) => {
   const { role } = req.body;
   if (!['pilot', 'atc'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   user.role = role;
-  req.session.userData = user; // keep session in sync
+  req.session.userData = user;
   res.json({ user });
 });
 
-// ── API: rooms ─────────────────────────────────────────────
 app.post('/api/rooms', (req, res) => {
-  const user = users[req.session.userId];
+  const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   if (user.role !== 'atc') return res.status(403).json({ error: 'ATC only' });
-
   const { eventName, airport } = req.body;
   if (!eventName) return res.status(400).json({ error: 'eventName required' });
-
   const id = uuidv4().slice(0, 6).toUpperCase();
   rooms[id] = {
-    id,
-    eventName,
+    id, eventName,
     airport: (airport || '').toUpperCase(),
-    strips: [],
-    atis: null,
-    connectedCount: 0,
-    createdAt: Date.now()
+    strips: [], atis: null,
+    connectedCount: 0, createdAt: Date.now()
   };
   res.json({ roomId: id });
 });
@@ -221,23 +173,6 @@ app.get('/api/rooms/:id', (req, res) => {
   res.json(room);
 });
 
-// ── API: ratings ───────────────────────────────────────────
-app.post('/api/rooms/:id/rate', (req, res) => {
-  const user = users[req.session.userId];
-  if (!user) return res.status(401).json({ error: 'Not logged in' });
-  if (user.role !== 'pilot') return res.status(403).json({ error: 'Pilots only' });
-
-  const { stars, comment, atcId } = req.body;
-  const rating = { stars, comment, atcId, pilotId: user.id, pilotName: user.username, ts: Date.now() };
-
-  if (users[atcId]) {
-    users[atcId].ratings = users[atcId].ratings || [];
-    users[atcId].ratings.push(rating);
-  }
-  res.json({ ok: true });
-});
-
-// ── Serve SPA ──────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
@@ -251,86 +186,69 @@ io.on('connection', (socket) => {
     const id = (roomId || '').toUpperCase();
     const room = getRoom(id);
     if (!room) { socket.emit('room:error', { message: 'Room not found.' }); return; }
-
     const user = users[userId];
     if (!user) { socket.emit('room:error', { message: 'Not authenticated.' }); return; }
-
     currentRoom = id;
     socketUser = user;
     socket.join(id);
     room.connectedCount = io.sockets.adapter.rooms.get(id)?.size || 0;
-    socket.emit('room:joined', sanitizeRoom(room));
+    socket.emit('room:joined', room);
     broadcastRoom(id);
     io.to(id).emit('room:message', { text: `${user.username} (${user.role?.toUpperCase()}) joined` });
   });
 
-  // ── ATC: add strip manually ──────────────────────────────
-  // ── ATC: add strip manually ──────────────────────────────
   socket.on('strip:add', ({ roomId, strip }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'atc') return;
-    const newStrip = {
+    room.strips.push({
       id: uuidv4(),
       callsign: serverEsc(strip.callsign) || '???',
-      actype: serverEsc(strip.actype) || '---',
-      va: serverEsc(strip.va) || '',
-      orig: serverEsc(strip.orig) || '----',
-      dest: serverEsc(strip.dest) || '----',
-      gate: serverEsc(strip.gate) || '',
-      fl: serverEsc(strip.fl) || '',
-      pilot: serverEsc(strip.pilot) || 'Unknown',
-      pilotId: strip.pilotId || null,
-      remarks: serverEsc(strip.remarks) || '',
+      actype:   serverEsc(strip.actype)   || '---',
+      va:       serverEsc(strip.va)       || '',
+      orig:     serverEsc(strip.orig)     || '----',
+      dest:     serverEsc(strip.dest)     || '----',
+      gate:     serverEsc(strip.gate)     || '',
+      fl:       serverEsc(strip.fl)       || '',
+      pilot:    serverEsc(strip.pilot)    || 'Unknown',
+      pilotId:  strip.pilotId || null,
+      remarks:  serverEsc(strip.remarks)  || '',
       flightRules: strip.flightRules || 'IFR',
-      squawk: null,
-      sid: serverEsc(strip.sid) || '',
-      star: serverEsc(strip.star) || '',
-      clearance: null,
-      pdcStatus: 'none',
+      squawk: null, sid: '', star: '',
+      clearance: null, pdcStatus: 'none',
       status: 'registered',
-      addedAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    room.strips.push(newStrip);
+      addedAt: Date.now(), updatedAt: Date.now()
+    });
     broadcastRoom(roomId);
   });
 
-  // ── Pilot: file flight plan (IFR/VFR) ───────────────────
   socket.on('flightplan:file', ({ roomId, plan }) => {
-    const room = getRoom(roomId); 
+    const room = getRoom(roomId);
     if (!room || !socketUser || socketUser.role !== 'pilot') return;
-
     const strip = {
       id: uuidv4(),
-      callsign: serverEsc(plan.callsign) || socketUser.username.toUpperCase(),
-      actype: serverEsc(plan.actype) || '---',
-      orig: serverEsc(plan.orig) || 'ZZZZ',
-      dest: serverEsc(plan.dest) || 'ZZZZ',
-      route: serverEsc(plan.route) || 'DIRECT',
-      remarks: serverEsc(plan.remarks) || '',
-      va: serverEsc(plan.va) || '',
-      fl: serverEsc(plan.fl) || '000',
+      callsign:    serverEsc(plan.callsign) || socketUser.username.toUpperCase(),
+      actype:      serverEsc(plan.actype)   || '---',
+      orig:        serverEsc(plan.orig)     || 'ZZZZ',
+      dest:        serverEsc(plan.dest)     || 'ZZZZ',
+      route:       serverEsc(plan.route)    || 'DIRECT',
+      remarks:     serverEsc(plan.remarks)  || '',
+      va:          serverEsc(plan.va)       || '',
+      fl:          serverEsc(plan.fl)       || '000',
       flightRules: plan.flightRules || 'IFR',
-      pilot: socketUser.username,
-      pilotId: socketUser.id,
-      status: 'registered',
-      pdcStatus: 'none',
-      addedAt: Date.now()
+      pilot:       socketUser.username,
+      pilotId:     socketUser.id,
+      status: 'registered', pdcStatus: 'none',
+      squawk: null, sid: '', star: '', clearance: null,
+      addedAt: Date.now(), updatedAt: Date.now()
     };
-
     room.strips.push(strip);
     broadcastRoom(roomId);
-
-    // Notify ATCs (Safe notifications)
     io.to(roomId).emit('room:message', {
       text: `✈ ${socketUser.username} filed ${strip.flightRules} — ${strip.orig}→${strip.dest}`
     });
-
-    // Send strip ID back to pilot so ACARS can track it
     socket.emit('flightplan:accepted', { stripId: strip.id });
-  }); // Only ONE closing brace here
+  });
 
-  // ── Pilot: request PDC ───────────────────────────────────
   socket.on('pdc:request', ({ roomId, stripId }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'pilot') return;
@@ -342,58 +260,43 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('room:message', { text: `📋 PDC requested by ${socketUser.username}` });
   });
 
-  // ── ATC: issue PDC / clearance ───────────────────────────
   socket.on('pdc:issue', ({ roomId, stripId, clearance }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'atc') return;
     const strip = room.strips.find(s => s.id === stripId);
     if (!strip) return;
-
-    strip.squawk = serverEsc(clearance.squawk) || (typeof generateSquawk === 'function' ? generateSquawk() : '1234');
-    strip.sid = serverEsc(clearance.sid) || '';
-    strip.star = serverEsc(clearance.star) || '';
-    strip.fl = serverEsc(clearance.fl) || strip.fl;
+    strip.squawk = serverEsc(clearance.squawk) || generateSquawk();
+    strip.sid     = serverEsc(clearance.sid)  || '';
+    strip.star    = serverEsc(clearance.star) || '';
+    strip.fl      = serverEsc(clearance.fl)   || strip.fl;
     strip.remarks = serverEsc(clearance.remarks) || strip.remarks;
-    
     strip.clearance = {
       ...clearance,
       squawk: strip.squawk,
       issuedBy: socketUser.username,
+      issuedByDiscordId: socketUser.id,
       issuedAt: Date.now()
     };
     strip.pdcStatus = 'issued';
     strip.updatedAt = Date.now();
     broadcastRoom(roomId);
-
-    io.to(roomId).emit(`pdc:clearance:${strip.pilotId}`, { strip });
     io.to(roomId).emit('room:message', {
       text: `✅ PDC issued to ${strip.pilot} — Squawk ${strip.squawk}`
     });
   });
-  // ── ATC: update strip status / squawk ───────────────────
-// ── ATC: update strip status / squawk ───────────────────
+
   socket.on('strip:update', ({ roomId, stripId, changes }) => {
     const room = getRoom(roomId);
-    
-    // Security check: only ATCs can update strips
     if (!room || !socketUser || socketUser.role !== 'atc') return;
-
     const strip = room.strips.find(s => s.id === stripId);
     if (!strip) return;
-
-    // ── XSS PROTECTION: Sanitize text inputs in changes ──
-    if (changes.squawk) changes.squawk = serverEsc(changes.squawk);
+    if (changes.squawk)  changes.squawk  = serverEsc(changes.squawk);
     if (changes.remarks) changes.remarks = serverEsc(changes.remarks);
-    if (changes.sid) changes.sid = serverEsc(changes.sid);
-
-    // Apply the changes to the strip
+    if (changes.sid)     changes.sid     = serverEsc(changes.sid);
     Object.assign(strip, changes, { updatedAt: Date.now() });
-
-    // Tell everyone in the room to refresh their boards
     broadcastRoom(roomId);
   });
 
-  // ── ATC: remove strip ────────────────────────────────────
   socket.on('strip:remove', ({ roomId, stripId }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'atc') return;
@@ -401,7 +304,6 @@ io.on('connection', (socket) => {
     broadcastRoom(roomId);
   });
 
-  // ── ATC: generate ATIS ───────────────────────────────────
   socket.on('atis:generate', ({ roomId, info }) => {
     const room = getRoom(roomId);
     if (!room || socketUser?.role !== 'atc') return;
@@ -410,7 +312,6 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('room:message', { text: `📡 ATIS ${room.atis.letter} issued` });
   });
 
-  // ── Pilot: rate ATC ──────────────────────────────────────
   socket.on('atc:rate', ({ atcId, stars, comment }) => {
     if (!socketUser || socketUser.role !== 'pilot') return;
     if (users[atcId]) {
@@ -425,44 +326,32 @@ io.on('connection', (socket) => {
     socket.emit('atc:rated', { ok: true });
   });
 
-  // ── Connection Disconnect ────────────────────────────────
-  socket.on('disconnect', () => {
-    if (currentRoom && rooms[currentRoom]) {
-      const size = io.sockets.adapter.rooms.get(currentRoom)?.size || 0;
-      rooms[currentRoom].connectedCount = size;
-      broadcastRoom(currentRoom);
-    }
-  });
-
-  // ── Chat Broadcast ──────────────────────────────────────
   socket.on('chat:send', ({ roomId, message }) => {
     const room = getRoom(roomId);
     if (!room || !socketUser) return;
-
-    const payload = {
-      userId: socketUser.id,
+    io.to(roomId).emit('chat:receive', {
+      userId:   socketUser.id,
       username: socketUser.username,
-      role: socketUser.role,
-      message: serverEsc(message), // Clean it on the server!
+      role:     socketUser.role,
+      message:  serverEsc(message),
       ts: Date.now()
-    };
-
-    io.to(roomId).emit('chat:receive', payload);
+    });
   });
 
-  // ── Voice Link Sync ─────────────────────────────────────
   socket.on('voice:set', ({ roomId, url }) => {
     const room = getRoom(roomId);
     if (!room || !socketUser) return;
-    
     room.voiceUrl = url;
     io.to(roomId).emit('voice:update', url);
     io.to(roomId).emit('room:message', { text: `🎙 Voice channel updated by ${socketUser.username}` });
   });
-  
-}); // <--- THIS BRACE CLOSES THE io.on('connection') BLOCK
 
-// ── Start Server ───────────────────────────────────────────
-server.listen(PORT, () => {
-  console.log(`PFEvent Control running on port ${PORT}`);
+  socket.on('disconnect', () => {
+    if (currentRoom && rooms[currentRoom]) {
+      rooms[currentRoom].connectedCount = io.sockets.adapter.rooms.get(currentRoom)?.size || 0;
+      broadcastRoom(currentRoom);
+    }
+  });
 });
+
+server.listen(PORT, () => console.log(`PFEvent Control running on port ${PORT}`));
