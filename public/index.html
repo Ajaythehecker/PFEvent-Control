@@ -9,8 +9,10 @@
 </head>
 <body>
 
-<!-- SCREEN 1: LOGIN -->
-<div id="screen-login" class="screen">
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 1: LOGIN
+═══════════════════════════════════════════════════════ -->
+<div id="screen-login" class="screen" style="display:none">
   <nav class="nav">
     <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
   </nav>
@@ -25,10 +27,13 @@
       </a>
       <div id="login-error" class="error-msg"></div>
     </div>
+
   </main>
 </div>
 
-<!-- SCREEN 2: ROLE PICKER -->
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 2: ROLE PICKER
+═══════════════════════════════════════════════════════ -->
 <div id="screen-role" class="screen" style="display:none">
   <nav class="nav">
     <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
@@ -38,7 +43,7 @@
     <h2 class="role-title">Who are you today?</h2>
     <p class="role-sub">Choose your role for this session</p>
     <div class="role-cards">
-      <div class="role-card" onclick="selectRole('atc')">
+      <div class="role-card" id="role-atc" onclick="selectRole('atc')">
         <div class="role-icon">🗼</div>
         <div class="role-name">Air Traffic Controller</div>
         <div class="role-desc">Manage flight strips, issue PDC clearances, generate ATIS, assign squawk codes, control strip status</div>
@@ -46,7 +51,7 @@
           <span>Strip board</span><span>ATIS generator</span><span>PDC issuance</span><span>Squawk assignment</span>
         </div>
       </div>
-      <div class="role-card" onclick="selectRole('pilot')">
+      <div class="role-card" id="role-pilot" onclick="selectRole('pilot')">
         <div class="role-icon">✈️</div>
         <div class="role-name">Pilot</div>
         <div class="role-desc">File IFR/VFR flight plans, request PDC via ACARS, receive clearances, rate your controller</div>
@@ -58,7 +63,9 @@
   </main>
 </div>
 
-<!-- SCREEN 3: HOME -->
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 3: HOME (after role selected)
+═══════════════════════════════════════════════════════ -->
 <div id="screen-home" class="screen" style="display:none">
   <nav class="nav">
     <div class="nav-logo"><span class="logo-icon">◈</span><span>PFEvent Control</span></div>
@@ -95,7 +102,9 @@
   </main>
 </div>
 
-<!-- SCREEN 4A: ATC BOARD -->
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4A: ATC BOARD
+═══════════════════════════════════════════════════════ -->
 <div id="screen-atc" class="screen" style="display:none">
   <div class="board-nav">
     <div class="board-nav-left">
@@ -103,21 +112,22 @@
       <span class="board-event-name" id="atc-event-name"></span>
       <span class="board-room-code" id="atc-room-code"></span>
     </div>
-    <div class="board-nav-right">
-      <div class="nav-stats-group">
-        <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
-        <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-pdc-count">0</span> PDC pending</div>
-        <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
-      </div>
-      <div class="nav-actions-group">
-        <button class="nav-btn btn-voice" id="atc-voice-btn" onclick="promptVoiceLink()">🎤 Voice</button>
-        <button class="nav-btn btn-chat" onclick="toggleChat()">💬 Chat</button>
-        <div class="nav-divider"></div>
-        <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
-        <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
-      </div>
-    </div>
+<div class="board-nav-right">
+  <div class="nav-stats-group">
+    <div class="stat-pill"><span id="atc-stat-total">0</span> strips</div>
+    <div class="stat-pill pdc-pill" id="atc-pdc-pill" style="display:none"><span id="atc-pdc-count">0</span> PDC pending</div>
+    <div class="stat-pill live"><span class="live-dot"></span><span id="atc-stat-conn">0</span> online</div>
   </div>
+
+  <div class="nav-actions-group">
+    <button class="nav-btn btn-voice" id="atc-voice-btn" onclick="promptVoiceLink('atc')">🎤 Voice</button>
+    <button class="nav-btn btn-chat" onclick="toggleChat()">💬 Chat</button>
+    <div class="nav-divider"></div>
+    <button class="btn-atis" onclick="openPanel('atis-panel')">📡 ATIS</button>
+    <button class="btn-add" onclick="openPanel('add-panel')">+ Strip</button>
+  </div>
+</div>
+
 
   <!-- ATIS banner -->
   <div class="atis-banner" id="atis-banner" style="display:none">
@@ -204,7 +214,7 @@
     <div class="panel-header"><span>Issue PDC Clearance</span><button class="panel-close" onclick="closePanel('pdc-panel')">✕</button></div>
     <div class="panel-body">
       <div class="pdc-pilot-info" id="pdc-pilot-info"></div>
-      <div class="field"><label>Squawk (auto-generated if blank)</label><input id="pdc-squawk" class="mono" placeholder="Will be auto-assigned"></div>
+      <div class="field"><label>Squawk (auto-generated)</label><input id="pdc-squawk" class="mono" placeholder="Will be auto-assigned"></div>
       <div class="field"><label>SID</label><input id="pdc-sid" class="mono" placeholder="DAVMO1A"></div>
       <div class="field"><label>STAR</label><input id="pdc-star" class="mono" placeholder="VUTEB1A"></div>
       <div class="field"><label>Cleared FL</label><input id="pdc-fl" class="mono" placeholder="FL350"></div>
@@ -214,34 +224,27 @@
     </div>
   </div>
 
-  <!-- ATC CHAT PANEL -->
-  <div id="atc-chat-panel" class="side-panel chat-panel">
-    <div class="panel-header"><span>Event Chat</span><button class="panel-close" onclick="toggleChat()">✕</button></div>
-    <div id="atc-chat-messages" class="chat-messages"></div>
-    <div class="chat-input-area" style="padding:10px;border-top:1px solid var(--border);display:flex;gap:5px">
-      <input type="text" id="atc-chat-input" placeholder="Type message..." style="flex:1;background:var(--bg3);border:1px solid var(--border);color:white;padding:5px 10px;border-radius:4px">
-      <button onclick="sendChat('atc')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer">Send</button>
-    </div>
-  </div>
-
   <div class="toast" id="atc-toast"></div>
 </div>
 
-<!-- SCREEN 4B: PILOT ACARS -->
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4B: PILOT ACARS
+═══════════════════════════════════════════════════════ -->
 <div id="screen-pilot" class="screen" style="display:none">
   <div class="acars-wrapper">
 
-    <!-- LEFT PANEL -->
+    <!-- LEFT PANEL: Controllers + ATIS -->
     <div class="acars-left-panel">
       <div class="alp-header">
         <button class="back-btn" onclick="goHome()">← Back</button>
         <span class="alp-event" id="pilot-event-name"></span>
       </div>
-
-      <div class="voice-link-display" style="display:none;margin-bottom:15px;padding:0 14px">
-        <div class="alp-section-title" style="padding:10px 0 6px">🎤 Voice Channel</div>
-        <a class="voice-link-anchor" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;background:#5865F2;color:white;padding:8px;border-radius:4px;font-weight:bold">JOIN DISCORD</a>
-      </div>
+      <div id="voice-link-display" style="display:none; margin-bottom:15px;">
+  <div class="alp-section-title">🎤 Voice Channel</div>
+  <a id="voice-link-anchor" href="#" target="_blank" class="btn-voice" style="display:block; text-align:center; text-decoration:none; background: #5865F2; color:white; padding:8px; border-radius:4px; font-weight:bold;">
+    JOIN DISCORD
+  </a>
+</div>
 
       <div class="alp-section-title">Controllers</div>
       <div class="controllers-list" id="controllers-list">
@@ -264,7 +267,7 @@
         <div class="term-header-right">
           <span class="board-room-code" id="pilot-room-code"></span>
           <div class="stat-pill live"><span class="live-dot"></span><span id="pilot-stat-conn">0</span> online</div>
-          <button class="nav-btn btn-chat" id="pilot-voice-btn" onclick="promptVoiceLink()">🎤 Voice</button>
+
           <button class="nav-btn btn-chat" onclick="togglePilotChat()">💬 Chat</button>
         </div>
       </div>
@@ -272,12 +275,15 @@
       <div class="acars-terminal" id="acars-terminal"></div>
 
       <div class="acars-input-bar">
+        <!-- Before filing -->
         <div id="acars-preflight-bar">
           <button class="acars-action-btn" onclick="openFilingModal()">FILE FLIGHT PLAN</button>
         </div>
+        <!-- After filing, waiting for PDC -->
         <div id="acars-pdc-bar" style="display:none">
           <button class="acars-pdc-btn" onclick="requestPDC()">REQUEST PDC</button>
         </div>
+        <!-- After PDC issued -->
         <div id="acars-post-bar" style="display:none">
           <button class="acars-rate-btn" onclick="showRateModal()">RATE CONTROLLER</button>
         </div>
@@ -286,11 +292,14 @@
 
     <!-- RIGHT PANEL: Flight Notes -->
     <div class="acars-right-panel">
-      <div class="alp-section-title"><span>🗒 Flight Notes</span></div>
+      <div class="alp-section-title">
+        <span>🗒 Flight Notes</span>
+      </div>
       <div class="flight-notes" id="flight-notes">
         <div class="fn-empty">File a flight plan to see your details here.</div>
       </div>
     </div>
+
   </div>
 
   <!-- FILING MODAL -->
@@ -330,7 +339,7 @@
       <button class="modal-close" onclick="closeModal('rate-modal')">✕</button>
       <h3 class="modal-title">Rate your controller</h3>
       <div class="field"><label>Stars</label>
-        <div class="star-row">
+        <div class="star-row" id="star-row">
           <span class="star" data-v="1">★</span>
           <span class="star" data-v="2">★</span>
           <span class="star" data-v="3">★</span>
@@ -345,21 +354,43 @@
       </div>
     </div>
   </div>
+<div id="voice-link-display" style="display:none; padding: 15px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+  <div style="font-size: 10px; color: var(--text2); text-transform: uppercase; margin-bottom: 5px;">🎤 Voice Channel</div>
+  <a id="voice-link-anchor" href="#" target="_blank" style="display:block; text-align:center; background: #5865F2; color:white; padding:10px; border-radius:6px; text-decoration:none; font-weight:bold;">JOIN DISCORD</a>
+</div>
 
-  <!-- PILOT CHAT PANEL -->
-  <div id="pilot-chat-panel" class="side-panel chat-panel">
-    <div class="panel-header"><span>Event Chat</span><button class="panel-close" onclick="togglePilotChat()">✕</button></div>
-    <div id="pilot-chat-messages" class="chat-messages"></div>
-    <div class="chat-input-area" style="padding:10px;border-top:1px solid var(--border);display:flex;gap:5px">
-      <input type="text" id="pilot-chat-input" placeholder="Type message..." style="flex:1;background:var(--bg3);border:1px solid var(--border);color:white;padding:5px 10px;border-radius:4px">
-      <button onclick="sendChat('pilot')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer">Send</button>
-    </div>
+<div id="pilot-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="togglePilotChat()">✕</button></div>
+  <div id="pilot-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="pilot-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:8px; border-radius:4px;">
+    <button onclick="sendChat('pilot')" style="background:var(--accent); color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">Send</button>
   </div>
+</div>
 
   <div class="toast" id="pilot-toast"></div>
 </div>
 
-<!-- VOICE MODAL (global) -->
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+
+<div id="atc-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="toggleChat()">✕</button></div>
+  <div id="atc-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="atc-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:5px 10px; border-radius:4px;">
+    <button onclick="sendChat('atc')" style="background:var(--accent); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Send</button>
+  </div>
+</div>
+<div id="pilot-chat-panel" class="side-panel chat-panel">
+  <div class="panel-header"><span>Event Chat</span><button onclick="togglePilotChat()">✕</button></div>
+  <div id="pilot-chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area" style="padding:10px; border-top:1px solid var(--border); display:flex; gap:5px;">
+    <input type="text" id="pilot-chat-input" placeholder="Type message..." style="flex:1; background:var(--bg3); border:1px solid var(--border); color:white; padding:5px 10px; border-radius:4px;">
+    <button onclick="sendChat('pilot')" style="background:var(--accent); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Send</button>
+  </div>
+</div>
+
 <div id="voice-modal" class="modal-backdrop">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('voice-modal')">✕</button>
@@ -372,7 +403,5 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/app.js"></script>
 </body>
 </html>
