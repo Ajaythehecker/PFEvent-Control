@@ -1,7 +1,6 @@
 {
   "name": "pfevent-control",
-  "version": "2.0.0",
-  "description": "Real-time flight strip platform for VA events in Project Flight",
+  "version": "3.0.0",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
